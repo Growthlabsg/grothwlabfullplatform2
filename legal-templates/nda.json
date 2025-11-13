@@ -1,0 +1,37 @@
+{
+  "title": "Non-Disclosure Agreement (NDA)",
+  "description": "A standard NDA template to protect confidential information.",
+  "fields": [
+    { "name": "disclosingParty", "label": "Disclosing Party Name", "type": "text", "required": true },
+    { "name": "receivingParty", "label": "Receiving Party Name", "type": "text", "required": true },
+    { "name": "effectiveDate", "label": "Effective Date", "type": "date", "required": true },
+    { "name": "term", "label": "Term (years)", "type": "number", "required": true, "default": 2 },
+    { "name": "jurisdiction", "label": "Jurisdiction", "type": "text", "required": true, "default": "State of [Your State]" }
+  ],
+  "clauses": [
+    {
+      "title": "Definition of Confidential Information",
+      "body": "'Confidential Information' means any information disclosed by {{disclosingParty}} to {{receivingParty}}, either directly or indirectly, in writing, orally or by inspection of tangible objects, that is designated as 'Confidential' or that reasonably should be understood to be confidential."
+    },
+    {
+      "title": "Obligations of Receiving Party",
+      "body": "{{receivingParty}} shall not disclose any Confidential Information to third parties for {{term}} years from the date of disclosure, and shall not use any Confidential Information for any purpose except to evaluate or engage in discussions concerning a potential business relationship between the parties."
+    },
+    {
+      "title": "Exclusions",
+      "body": "Confidential Information does not include information that (a) is or becomes publicly known through no act or omission of {{receivingParty}}; (b) was in {{receivingParty}}'s lawful possession prior to the disclosure; (c) is lawfully disclosed to {{receivingParty}} by a third party without restriction on disclosure; or (d) is independently developed by {{receivingParty}} without use of or reference to Confidential Information."
+    },
+    {
+      "title": "Return of Materials",
+      "body": "All documents and other tangible objects containing or representing Confidential Information and all copies thereof which are in the possession of {{receivingParty}} shall be and remain the property of {{disclosingParty}} and shall be promptly returned to {{disclosingParty}} upon {{disclosingParty}}'s written request."
+    },
+    {
+      "title": "Governing Law",
+      "body": "This Agreement shall be governed by and construed in accordance with the laws of {{jurisdiction}}, without regard to its conflict of laws principles."
+    }
+  ],
+  "signatureSection": {
+    "parties": ["disclosingParty", "receivingParty"],
+    "dateField": "effectiveDate"
+  }
+}

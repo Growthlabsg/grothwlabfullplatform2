@@ -1,0 +1,180 @@
+import EnvironmentVariablesDemo from "@/components/env/environment-variables-demo"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ShieldAlertIcon, CodeIcon, ServerIcon } from "lucide-react"
+
+export const metadata = {
+  title: "Environment Variables | GrowthLab Admin",
+  description: "Manage and view environment variables for GrowthLab",
+}
+
+export default function EnvironmentPage() {
+  return (
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Environment Configuration</h1>
+        <p className="text-muted-foreground">Manage and view environment variables for GrowthLab</p>
+      </div>
+
+      <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+        <ShieldAlertIcon className="h-4 w-4" />
+        <AlertTitle>Admin Access Only</AlertTitle>
+        <AlertDescription>
+          This page is for administrative purposes only. Environment variables should never be exposed in production.
+        </AlertDescription>
+      </Alert>
+
+      <Tabs defaultValue="demo">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="demo">
+            <CodeIcon className="mr-2 h-4 w-4" />
+            Demo
+          </TabsTrigger>
+          <TabsTrigger value="docs">
+            <ServerIcon className="mr-2 h-4 w-4" />
+            Documentation
+          </TabsTrigger>
+          <TabsTrigger value="setup">
+            <ShieldAlertIcon className="mr-2 h-4 w-4" />
+            Setup Guide
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="demo" className="mt-6">
+          <EnvironmentVariablesDemo />
+        </TabsContent>
+
+        <TabsContent value="docs" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Environment Variables Documentation</CardTitle>
+              <CardDescription>Learn how to use environment variables in GrowthLab</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="prose max-w-none">
+                <h3>Using Environment Variables</h3>
+                <p>
+                  GrowthLab uses a centralized environment variable system through the <code>env</code> object
+                  exported from <code>lib/env.ts</code>. This provides type safety and consistent access patterns.
+                </p>
+
+                <h4>Example Usage</h4>
+                <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                  <code>{`import { env } from '@/lib/env'
+
+// Access environment variables with type safety
+const apiKey = env.openaiApiKey
+const isFeatureEnabled = env.features.valuationComparison
+
+// Check environment
+if (env.isProduction()) {
+  // Production-only code
+}`}</code>
+                </pre>
+
+                <h3>Available Helper Functions</h3>
+                <ul>
+                  <li>
+                    <code>getEnv(key, fallback?, required?)</code> - Get an environment variable with fallback
+                  </li>
+                  <li>
+                    <code>getBoolEnv(key, defaultValue?)</code> - Get a boolean environment variable
+                  </li>
+                  <li>
+                    <code>getNumEnv(key, defaultValue?)</code> - Get a numeric environment variable
+                  </li>
+                  <li>
+                    <code>getJsonEnv(key, defaultValue)</code> - Get a JSON environment variable
+                  </li>
+                </ul>
+
+                <h3>Mock Environment Variables</h3>
+                <p>
+                  In development and test environments, the system will automatically fall back to mock values defined
+                  in
+                  <code>lib/mock-env-variables.ts</code> if the actual environment variables are not set.
+                </p>
+
+                <h4>Loading Mock Variables</h4>
+                <p>You can load all mock variables into your development environment by running:</p>
+                <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                  <code>npx ts-node scripts/load-mock-env.ts</code>
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="setup" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Environment Setup Guide</CardTitle>
+              <CardDescription>How to set up environment variables for different environments</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="prose max-w-none">
+                <h3>Development Environment</h3>
+                <p>
+                  For local development, create a <code>.env.local</code> file in the root of your project. You can use
+                  the mock environment script to generate this file:
+                </p>
+                <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                  <code>npx ts-node scripts/load-mock-env.ts</code>
+                </pre>
+
+                <h3>Testing Environment</h3>
+                <p>For testing, use the provided test utilities which set up mock environment variables:</p>
+                <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                  <code>{`import { setupTestEnvironment } from '../lib/testing-utils'
+
+describe('My Test', () => {
+  const cleanup = setupTestEnvironment()
+  
+  afterAll(() => cleanup())
+  
+  it('should work with mock environment', () => {
+    // Test code
+  })
+})`}</code>
+                </pre>
+
+                <h3>Production Environment</h3>
+                <p>
+                  For production, set environment variables in your hosting platform (Vercel, AWS, etc.). Never commit
+                  sensitive environment variables to your repository.
+                </p>
+
+                <h4>Required Production Variables</h4>
+                <ul>
+                  <li>
+                    <code>NODE_ENV=production</code>
+                  </li>
+                  <li>
+                    <code>DATABASE_URL</code> - PostgreSQL connection string
+                  </li>
+                  <li>
+                    <code>JWT_SECRET</code> - Secret for JWT token generation
+                  </li>
+                  <li>
+                    <code>NEXTAUTH_SECRET</code> - Secret for Next.js Authentication
+                  </li>
+                  <li>
+                    <code>NEXTAUTH_URL</code> - URL for Next.js Authentication callbacks
+                  </li>
+                  <li>
+                    <code>NEXT_PUBLIC_APP_URL</code> - Public URL of the application
+                  </li>
+                </ul>
+
+                <p>
+                  See <code>docs/environment-variables.md</code> for a complete list of environment variables.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

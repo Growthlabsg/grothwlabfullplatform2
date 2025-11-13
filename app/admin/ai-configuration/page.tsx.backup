@@ -1,0 +1,554 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  Settings,
+  Key,
+  Brain,
+  Zap,
+  Shield,
+  Eye,
+  EyeOff,
+  Save,
+  TestTube,
+  BarChart3,
+  Globe,
+  Lock,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Edit,
+  Copy,
+  ExternalLink,
+  Sparkles,
+  Cpu,
+  Database,
+  Network,
+  Activity,
+} from "lucide-react"
+import { aiService, type AIProvider, type AIModel, type AIConfig } from "@/lib/ai-config"
+
+export default function AIConfigurationPage() {
+  const { toast } = useToast()
+  const [config, setConfig] = useState<AIConfig>(aiService.getConfig())
+  const [activeTab, setActiveTab] = useState("providers")
+  const [showApiKeys, setShowApiKeys] = useState(false)
+  const [testResults, setTestResults] = useState<{ [key: string]: boolean }>({})
+
+  const handleProviderUpdate = (providerId: string, updates: Partial<AIProvider>) => {
+    aiService.updateProvider(providerId, updates)
+    setConfig(aiService.getConfig())
+    toast({
+      title: "Provider Updated",
+      description: `${updates.name || 'Provider'} configuration has been updated.`,
+    })
+  }
+
+  const handleModelUpdate = (providerId: string, modelId: string, updates: Partial<AIModel>) => {
+    aiService.updateModel(providerId, modelId, updates)
+    setConfig(aiService.getConfig())
+    toast({
+      title: "Model Updated",
+      description: `${updates.name || 'Model'} configuration has been updated.`,
+    })
+  }
+
+  const handleGlobalSettingsUpdate = (updates: Partial<AIConfig['globalSettings']>) => {
+    const newConfig = { ...config, globalSettings: { ...config.globalSettings, ...updates } }
+    aiService.setConfig(newConfig)
+    setConfig(newConfig)
+    toast({
+      title: "Global Settings Updated",
+      description: "Global AI settings have been updated.",
+    })
+  }
+
+  const testProvider = async (providerId: string) => {
+    const provider = config.providers.find(p => p.id === providerId)
+    if (!provider || !provider.isConfigured) {
+      toast({
+        title: "Provider Not Configured",
+        description: "Please configure the provider first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setTestResults(prev => ({ ...prev, [providerId]: true }))
+    
+    try {
+      const testModel = provider.models.find(m => m.isActive)
+      if (!testModel) throw new Error("No active models found")
+      
+      const response = await aiService.generateContent(
+        "Test message to verify AI integration",
+        testModel.id
+      )
+      
+      setTestResults(prev => ({ ...prev, [providerId]: false }))
+      toast({
+        title: "Test Successful",
+        description: `${provider.name} is working correctly.`,
+      })
+    } catch (error) {
+      setTestResults(prev => ({ ...prev, [providerId]: false }))
+      toast({
+        title: "Test Failed",
+        description: `Failed to test ${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const copyApiKey = (apiKey: string) => {
+    navigator.clipboard.writeText(apiKey)
+    toast({
+      title: "API Key Copied",
+      description: "API key has been copied to clipboard.",
+    })
+  }
+
+  return (
+          <div className="container mx-auto max-w-7xl px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">AI Configuration</h1>
+              <p className="text-lg text-gray-600">
+                Manage AI providers, API keys, and model settings for the platform
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowApiKeys(!showApiKeys)}
+                variant="outline"
+                className="border-[#0F7377] text-[#0F7377] hover:bg-[#0F7377]/10"
+              >
+                {showApiKeys ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showApiKeys ? "Hide" : "Show"} API Keys
+              </Button>
+              <Button onClick={() => setConfig(aiService.getConfig())} className="bg-[#0F7377] hover:bg-[#0F7377]/90">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Status */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">AI Status</p>
+                  <p className="text-2xl font-bold">{config.globalSettings.enableAI ? "Active" : "Inactive"}</p>
+                </div>
+                <Brain className="h-8 w-8 text-[#0F7377]" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Configured Providers</p>
+                  <p className="text-2xl font-bold">{config.providers.filter(p => p.isConfigured).length}</p>
+                </div>
+                <Globe className="h-8 w-8 text-[#0F7377]" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Active Models</p>
+                  <p className="text-2xl font-bold">
+                    {config.providers.reduce((acc, p) => acc + p.models.filter(m => m.isActive).length, 0)}
+                  </p>
+                </div>
+                <Cpu className="h-8 w-8 text-[#0F7377]" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Default Provider</p>
+                  <p className="text-2xl font-bold capitalize">{config.defaultProvider}</p>
+                </div>
+                <Settings className="h-8 w-8 text-[#0F7377]" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="providers">AI Providers</TabsTrigger>
+            <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="settings">Global Settings</TabsTrigger>
+            <TabsTrigger value="testing">Testing</TabsTrigger>
+          </TabsList>
+
+          {/* AI Providers */}
+          <TabsContent value="providers" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {config.providers.map((provider) => (
+                <Card key={provider.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <Brain className="h-5 w-5 text-[#0F7377]" />
+                        </div>
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            {provider.name}
+                            <Badge variant={provider.isConfigured ? "default" : "secondary"}>
+                              {provider.isConfigured ? "Configured" : "Not Configured"}
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription>{provider.description}</CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => testProvider(provider.id)}
+                          disabled={testResults[provider.id]}
+                          className="bg-[#0F7377] hover:bg-[#0F7377]/90"
+                        >
+                          {testResults[provider.id] ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <TestTube className="h-4 w-4 mr-2" />
+                          )}
+                          Test
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label>API Key</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showApiKeys ? "text" : "password"}
+                          value={provider.apiKey || ""}
+                          onChange={(e) => handleProviderUpdate(provider.id, { apiKey: e.target.value })}
+                          placeholder="Enter API key"
+                        />
+                        {provider.apiKey && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyApiKey(provider.apiKey!)}
+                            className="border-[#0F7377] text-[#0F7377] hover:bg-[#0F7377]/10"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Base URL (Optional)</Label>
+                      <Input
+                        value={provider.baseUrl || ""}
+                        onChange={(e) => handleProviderUpdate(provider.id, { baseUrl: e.target.value })}
+                        placeholder="https://api.openai.com/v1"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Enable Provider</Label>
+                        <p className="text-sm text-gray-500">Enable this provider for use</p>
+                      </div>
+                      <Switch
+                        checked={provider.isConfigured}
+                        onCheckedChange={(checked) => 
+                          handleProviderUpdate(provider.id, { isConfigured: checked })
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Models ({provider.models.length})</Label>
+                      <div className="space-y-2 mt-2">
+                        {provider.models.map((model) => (
+                          <div key={model.id} className="flex items-center justify-between p-2 border rounded">
+                            <div>
+                              <p className="font-medium text-sm">{model.name}</p>
+                              <p className="text-xs text-gray-500">{model.description}</p>
+                            </div>
+                            <Badge variant={model.isActive ? "default" : "secondary"}>
+                              {model.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Models */}
+          <TabsContent value="models" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {config.providers.map((provider) => (
+                <Card key={provider.id}>
+                  <CardHeader>
+                    <CardTitle>{provider.name} Models</CardTitle>
+                    <CardDescription>Configure individual model settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {provider.models.map((model) => (
+                      <div key={model.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{model.name}</h4>
+                            <p className="text-sm text-gray-500">{model.description}</p>
+                          </div>
+                          <Switch
+                            checked={model.isActive}
+                            onCheckedChange={(checked) => 
+                              handleModelUpdate(provider.id, model.id, { isActive: checked })
+                            }
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Max Tokens</Label>
+                            <Input
+                              type="number"
+                              value={model.maxTokens}
+                              onChange={(e) => 
+                                handleModelUpdate(provider.id, model.id, { maxTokens: parseInt(e.target.value) })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Cost per Token</Label>
+                            <Input
+                              type="number"
+                              step="0.000001"
+                              value={model.costPerToken}
+                              onChange={(e) => 
+                                handleModelUpdate(provider.id, model.id, { costPerToken: parseFloat(e.target.value) })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label>Capabilities</Label>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {model.capabilities.map((capability) => (
+                              <Badge key={capability} variant="outline" className="text-xs">
+                                {capability}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Global Settings */}
+          <TabsContent value="settings" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Global AI Settings</CardTitle>
+                  <CardDescription>Configure platform-wide AI settings</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Enable AI</Label>
+                      <p className="text-sm text-gray-500">Enable AI features across the platform</p>
+                    </div>
+                    <Switch
+                      checked={config.globalSettings.enableAI}
+                      onCheckedChange={(checked) => 
+                        handleGlobalSettingsUpdate({ enableAI: checked })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Default Provider</Label>
+                    <Select
+                      value={config.defaultProvider}
+                      onValueChange={(value) => {
+                        const newConfig = { ...config, defaultProvider: value }
+                        aiService.setConfig(newConfig)
+                        setConfig(newConfig)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {config.providers.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Default Max Tokens</Label>
+                    <Input
+                      type="number"
+                      value={config.globalSettings.maxTokens}
+                      onChange={(e) => 
+                        handleGlobalSettingsUpdate({ maxTokens: parseInt(e.target.value) })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Default Temperature</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={config.globalSettings.temperature}
+                      onChange={(e) => 
+                        handleGlobalSettingsUpdate({ temperature: parseFloat(e.target.value) })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Request Timeout (ms)</Label>
+                    <Input
+                      type="number"
+                      value={config.globalSettings.timeout}
+                      onChange={(e) => 
+                        handleGlobalSettingsUpdate({ timeout: parseInt(e.target.value) })
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Security & Privacy</CardTitle>
+                  <CardDescription>Configure AI security settings</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>API Key Encryption</Label>
+                      <p className="text-sm text-gray-500">Encrypt API keys in storage</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Request Logging</Label>
+                      <p className="text-sm text-gray-500">Log AI requests for debugging</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Rate Limiting</Label>
+                      <p className="text-sm text-gray-500">Enable rate limiting for AI requests</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Content Filtering</Label>
+                      <p className="text-sm text-gray-500">Filter inappropriate content</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Testing */}
+          <TabsContent value="testing" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Provider Testing</CardTitle>
+                <CardDescription>Test AI providers and models for functionality</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {config.providers.map((provider) => (
+                    <div key={provider.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Brain className="h-5 w-5 text-[#0F7377]" />
+                        <div>
+                          <p className="font-medium">{provider.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {provider.models.filter(m => m.isActive).length} active models
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={provider.isConfigured ? "default" : "secondary"}>
+                          {provider.isConfigured ? "Configured" : "Not Configured"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          onClick={() => testProvider(provider.id)}
+                          disabled={testResults[provider.id] || !provider.isConfigured}
+                          className="bg-[#0F7377] hover:bg-[#0F7377]/90"
+                        >
+                          {testResults[provider.id] ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <TestTube className="h-4 w-4 mr-2" />
+                          )}
+                          {testResults[provider.id] ? "Testing..." : "Test"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    )
+  }

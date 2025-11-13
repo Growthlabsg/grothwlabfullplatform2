@@ -1,0 +1,12 @@
+"use client"
+
+import { FounderDashboard } from "@/components/admin/founder-dashboard"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+
+export default function FounderDashboardPage() {
+  return (
+    <ProtectedRoute requiredPermission="founder:all">
+      <FounderDashboard />
+    </ProtectedRoute>
+  )
+}

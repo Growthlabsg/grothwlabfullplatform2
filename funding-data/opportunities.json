@@ -1,0 +1,46 @@
+[
+  {
+    "id": "1",
+    "title": "Startup Innovation Grant",
+    "description": "Funding for early-stage startups developing innovative technology solutions.",
+    "amount": "$50,000 - $200,000",
+    "deadline": "2024-08-15",
+    "eligibility": "Startups less than 5 years old, incorporated, with a working prototype.",
+    "projectTypes": ["Technology", "Software", "AI"],
+    "region": "Global",
+    "link": "https://example.com/startup-innovation-grant"
+  },
+  {
+    "id": "2",
+    "title": "Women Entrepreneurs Fund",
+    "description": "Grants for women-led businesses in any sector.",
+    "amount": "$10,000 - $100,000",
+    "deadline": "2024-09-01",
+    "eligibility": "Majority women-owned businesses, any stage.",
+    "projectTypes": ["All"],
+    "region": "North America",
+    "link": "https://example.com/women-entrepreneurs-fund"
+  },
+  {
+    "id": "3",
+    "title": "Green Energy Challenge",
+    "description": "Competition for projects focused on renewable energy and sustainability.",
+    "amount": "$25,000 prize + mentorship",
+    "deadline": "2024-07-20",
+    "eligibility": "Open to individuals, teams, and companies with a green energy project.",
+    "projectTypes": ["Energy", "Environment", "Sustainability"],
+    "region": "Europe",
+    "link": "https://example.com/green-energy-challenge"
+  },
+  {
+    "id": "4",
+    "title": "Social Impact Accelerator",
+    "description": "Support and funding for social enterprises making a measurable impact.",
+    "amount": "$30,000 + 6-month accelerator program",
+    "deadline": "2024-10-10",
+    "eligibility": "Registered social enterprises, any stage.",
+    "projectTypes": ["Social Impact", "Nonprofit", "Community"],
+    "region": "Asia-Pacific",
+    "link": "https://example.com/social-impact-accelerator"
+  }
+]

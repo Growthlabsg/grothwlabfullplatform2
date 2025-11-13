@@ -1,0 +1,331 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { AdminLayout } from "@/components/admin/admin-layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { CalendarIcon, Download, Search, RefreshCw, AlertTriangle, InfoIcon, AlertCircle } from "lucide-react"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { getActivityLogs, type ActivityLog, type ActivityType, type ActivitySeverity } from "@/lib/activity-logger"
+
+export default function AdminActivityLogsPage() {
+  const [logs, setLogs] = useState<ActivityLog[]>([])
+  const [totalLogs, setTotalLogs] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [typeFilter, setTypeFilter] = useState<ActivityType | "all">("all")
+  const [severityFilter, setSeverityFilter] = useState<ActivitySeverity | "all">("all")
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const logsPerPage = 20
+
+  useEffect(() => {
+    fetchLogs()
+  }, [currentPage, typeFilter, severityFilter, startDate, endDate])
+
+  const fetchLogs = () => {
+    setIsLoading(true)
+
+    // Build filters
+    const filters: any = {}
+    if (typeFilter !== "all") filters.type = typeFilter
+    if (severityFilter !== "all") filters.severity = severityFilter
+    if (startDate) filters.startDate = startDate.toISOString()
+    if (endDate) filters.endDate = endDate.toISOString()
+
+    // Get logs with pagination and filters
+    const { logs, total } = getActivityLogs(currentPage, logsPerPage, filters)
+
+    // Filter by search term if provided
+    const filteredLogs = searchTerm
+      ? logs.filter(
+          (log) =>
+            log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.type.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
+      : logs
+
+    setLogs(filteredLogs)
+    setTotalLogs(total)
+    setIsLoading(false)
+  }
+
+  const handleSearch = () => {
+    setCurrentPage(1)
+    fetchLogs()
+  }
+
+  const handleReset = () => {
+    setSearchTerm("")
+    setTypeFilter("all")
+    setSeverityFilter("all")
+    setStartDate(undefined)
+    setEndDate(undefined)
+    setCurrentPage(1)
+  }
+
+  const handleExport = () => {
+    // In a real app, this would export the logs to CSV
+    const csvContent = [
+      // Header
+      ["ID", "Type", "User", "Description", "Severity", "Timestamp"].join(","),
+      // Data
+      ...logs.map((log) =>
+        [log.id, log.type, log.userEmail, `"${log.description.replace(/"/g, '""')}"`, log.severity, log.timestamp].join(
+          ",",
+        ),
+      ),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `activity_logs_${new Date().toISOString().split("T")[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const getSeverityColor = (severity: ActivitySeverity) => {
+    switch (severity) {
+      case "info":
+        return "bg-blue-500"
+      case "warning":
+        return "bg-yellow-500"
+      case "error":
+        return "bg-red-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
+  const getSeverityIcon = (severity: ActivitySeverity) => {
+    switch (severity) {
+      case "info":
+        return <InfoIcon className="h-4 w-4 text-blue-500" />
+      case "warning":
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      case "error":
+        return <AlertCircle className="h-4 w-4 text-red-500" />
+      default:
+        return null
+    }
+  }
+
+  const totalPages = Math.ceil(totalLogs / logsPerPage)
+
+  return (
+    <ProtectedRoute requiredPermission="admin.logs">
+      <AdminLayout>
+        <div className="flex-1 space-y-4 p-4 md:p-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-bold tracking-tight">Activity Logs</h2>
+            <Button onClick={handleExport} className="bg-[#0F7377] hover:bg-[#0F7377]/90">
+              <Download className="mr-2 h-4 w-4" />
+              Export Logs
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>System Activity</CardTitle>
+              <CardDescription>Monitor all activity across the GrowthLab platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex w-full items-center gap-2 md:w-auto">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search logs..."
+                      className="w-full md:w-[300px]"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
+                    <Button variant="outline" size="icon" onClick={handleSearch}>
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-col gap-2 md:flex-row">
+                    <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+                      <SelectTrigger className="w-full md:w-[180px]">
+                        <SelectValue placeholder="Filter by type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="user_login">User Login</SelectItem>
+                        <SelectItem value="user_logout">User Logout</SelectItem>
+                        <SelectItem value="user_signup">User Signup</SelectItem>
+                        <SelectItem value="user_update">User Update</SelectItem>
+                        <SelectItem value="startup_create">Startup Create</SelectItem>
+                        <SelectItem value="startup_update">Startup Update</SelectItem>
+                        <SelectItem value="funding_create">Funding Create</SelectItem>
+                        <SelectItem value="application_submit">Application Submit</SelectItem>
+                        <SelectItem value="data_import">Data Import</SelectItem>
+                        <SelectItem value="data_export">Data Export</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as any)}>
+                      <SelectTrigger className="w-full md:w-[180px]">
+                        <SelectValue placeholder="Filter by severity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Severities</SelectItem>
+                        <SelectItem value="info">Info</SelectItem>
+                        <SelectItem value="warning">Warning</SelectItem>
+                        <SelectItem value="error">Error</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left font-normal md:w-[180px]">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : "Start date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start text-left font-normal md:w-[180px]">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : "End date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <Button variant="outline" size="icon" onClick={handleReset}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Severity</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center">
+                            <RefreshCw className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                      ) : logs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center">
+                            No logs found.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        logs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="whitespace-nowrap">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.type.replace(/_/g, " ")}</Badge>
+                            </TableCell>
+                            <TableCell>{log.userEmail}</TableCell>
+                            <TableCell>{log.description}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getSeverityIcon(log.severity)}
+                                <div className={`h-2 w-2 rounded-full ${getSeverityColor(log.severity)}`} />
+                                <span className="capitalize">{log.severity}</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {logs.length} of {totalLogs} logs
+                  </p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNumber =
+                          currentPage <= 3
+                            ? i + 1
+                            : currentPage >= totalPages - 2
+                              ? totalPages - 4 + i
+                              : currentPage - 2 + i
+
+                        if (pageNumber <= 0 || pageNumber > totalPages) return null
+
+                        return (
+                          <PaginationItem key={pageNumber}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(pageNumber)}
+                              isActive={currentPage === pageNumber}
+                            >
+                              {pageNumber}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      })}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    </ProtectedRoute>
+  )
+}

@@ -1,0 +1,157 @@
+'use client'
+
+import React, { createContext, useContext, useEffect, useState } from 'react'
+
+interface UserProfile {
+  id: string
+  email: string
+  name?: string
+  firstName?: string
+  lastName?: string
+  picture?: string
+  profilePicture?: string
+  provider: 'google' | 'linkedin'
+  accessToken?: string
+  expiresAt?: number
+  // Add missing properties that the sidebar expects
+  role?: string
+  avatarUrl?: string
+  displayName?: string
+}
+
+interface AuthContextType {
+  user: UserProfile | null
+  loading: boolean
+  isLoading: boolean
+  login: (provider: 'google' | 'linkedin') => void
+  logout: () => void
+  importLinkedInProfile: (profileType: string) => Promise<any>
+  hasPermission: (permission: string) => boolean
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for existing user session
+    const checkAuth = async () => {
+      try {
+        // Check cookies for user session (OAuth routes set cookies)
+        const getCookie = (name: string) => {
+          const value = `; ${document.cookie}`
+          const parts = value.split(`; ${name}=`)
+          if (parts.length === 2) return parts.pop()?.split(';').shift()
+          return null
+        }
+        
+        const userProfileCookie = getCookie('user_profile')
+        if (userProfileCookie) {
+          const parsed = JSON.parse(decodeURIComponent(userProfileCookie))
+          // Check if token is still valid
+          if (parsed.expiresAt && parsed.expiresAt > Date.now()) {
+            // Add missing properties that the sidebar expects
+            const enhancedUser = {
+              ...parsed,
+              role: parsed.role || 'user',
+              avatarUrl: parsed.picture || parsed.profilePicture || '',
+              displayName: parsed.name || `${parsed.firstName || ''} ${parsed.lastName || ''}`.trim() || parsed.email,
+            }
+            setUser(enhancedUser)
+          } else {
+            // Clear expired cookie
+            document.cookie = 'user_profile=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [])
+
+  const login = (provider: 'google' | 'linkedin') => {
+    const clientId = provider === 'google' 
+      ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+      : process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID
+    
+    const redirectUri = provider === 'google'
+      ? process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI
+      : process.env.NEXT_PUBLIC_LINKEDIN_REDIRECT_URI
+
+    const scope = provider === 'google'
+      ? 'openid email profile'
+      : 'r_liteprofile r_emailaddress'
+
+    const authUrl = provider === 'google'
+      ? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline`
+      : `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${Math.random().toString(36).substring(7)}`
+
+    window.location.href = authUrl
+  }
+
+  const logout = () => {
+    setUser(null)
+    // Clear cookies instead of localStorage
+    document.cookie = 'user_profile=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    // Clear any other auth-related storage
+  }
+
+  const importLinkedInProfile = async (profileType: string) => {
+    if (!user?.accessToken) {
+      throw new Error('No LinkedIn access token available')
+    }
+
+    const response = await fetch('/api/auth/linkedin/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        accessToken: user.accessToken,
+        profileType,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to import profile')
+    }
+
+    return response.json()
+  }
+
+  const hasPermission = (permission: string): boolean => {
+    // For now, return true for all permissions
+    // This can be enhanced later with actual permission checking
+    return true
+  }
+
+  const value = {
+    user,
+    loading,
+    isLoading: loading, // Alias for isLoading
+    login,
+    logout,
+    importLinkedInProfile,
+    hasPermission,
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}

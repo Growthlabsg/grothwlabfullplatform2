@@ -1,0 +1,29 @@
+"use client"
+import { AdminLayout } from "@/components/admin/admin-layout"
+import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard"
+import { BulkOperations } from "@/components/admin/bulk-operations"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+
+export default function AdminDashboardPage() {
+  return (
+    <ProtectedRoute requiredPermission="admin.dashboard">
+      <AdminLayout>
+        <Tabs defaultValue="analytics" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <AnalyticsDashboard />
+          </TabsContent>
+
+          <TabsContent value="bulk" className="space-y-4">
+            <BulkOperations />
+          </TabsContent>
+        </Tabs>
+      </AdminLayout>
+    </ProtectedRoute>
+  )
+}
