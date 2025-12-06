@@ -1,75 +1,77 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface CofounderProfile {
-  id: string
-  name: string
-  location: string
-  experience: string
-  availability: string
-  skills: string[]
-  values: string[]
-  goals: string[]
-  education: string
-  previousStartups: number
-  isVerified: boolean
-  isPremium: boolean
-  compatibilityScore: number
-  matchQuality: string
-  industry: string[]
-  commitment: string
-  lastActive: Date
-  bio: string
-  achievements: string[]
-  lookingFor: string
-  timezone: string
-  languages: string[]
-  linkedin?: string
-  github?: string
-  twitter?: string
-  portfolio?: string
-  behance?: string
-  researchgate?: string
-  mutualConnections?: number
-  sharedInterests?: string[]
-  fundingRaised?: string
-  [key: string]: any
+  id: string;
+  name: string;
+  location: string;
+  experience: string;
+  availability: string;
+  skills: string[];
+  values: string[];
+  goals: string[];
+  education: string;
+  previousStartups: number;
+  isVerified: boolean;
+  isPremium: boolean;
+  compatibilityScore: number;
+  matchQuality: string;
+  industry: string[];
+  commitment: string;
+  lastActive: Date;
+  bio: string;
+  achievements: string[];
+  lookingFor: string;
+  timezone: string;
+  languages: string[];
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  portfolio?: string;
+  behance?: string;
+  researchgate?: string;
+  mutualConnections?: number;
+  sharedInterests?: string[];
+  fundingRaised?: string;
+  [key: string]: any;
 }
 
 interface CofounderContextType {
-  profiles: CofounderProfile[]
-  setProfiles: (profiles: CofounderProfile[]) => void
-  savedProfiles: string[]
-  setSavedProfiles: (profiles: string[]) => void
-  connectionRequests: string[]
-  setConnectionRequests: (requests: string[]) => void
-  conversations: any[]
-  setConversations: (conversations: any[]) => void
-  addProfile: (profile: CofounderProfile) => void
-  updateProfile: (id: string, updates: Partial<CofounderProfile>) => void
-  deleteProfile: (id: string) => void
-  saveProfile: (profileId: string) => void
-  unsaveProfile: (profileId: string) => void
-  sendConnectionRequest: (profileId: string) => void
-  acceptConnectionRequest: (profileId: string) => void
-  rejectConnectionRequest: (profileId: string) => void
-  sendMessage: (profileId: string, message: string) => void
-  getProfileById: (id: string) => CofounderProfile | undefined
-  isProfileSaved: (profileId: string) => boolean
-  hasConnectionRequest: (profileId: string) => boolean
-  getConversation: (profileId: string) => any
+  profiles: CofounderProfile[];
+  setProfiles: (profiles: CofounderProfile[]) => void;
+  savedProfiles: string[];
+  setSavedProfiles: (profiles: string[]) => void;
+  connectionRequests: string[];
+  setConnectionRequests: (requests: string[]) => void;
+  conversations: any[];
+  setConversations: (conversations: any[]) => void;
+  addProfile: (profile: CofounderProfile) => void;
+  updateProfile: (id: string, updates: Partial<CofounderProfile>) => void;
+  deleteProfile: (id: string) => void;
+  saveProfile: (profileId: string) => void;
+  unsaveProfile: (profileId: string) => void;
+  sendConnectionRequest: (profileId: string) => void;
+  acceptConnectionRequest: (profileId: string) => void;
+  rejectConnectionRequest: (profileId: string) => void;
+  sendMessage: (profileId: string, message: string) => void;
+  getProfileById: (id: string) => CofounderProfile | undefined;
+  isProfileSaved: (profileId: string) => boolean;
+  hasConnectionRequest: (profileId: string) => boolean;
+  getConversation: (profileId: string) => any;
 }
 
-const CofounderContext = createContext<CofounderContextType | undefined>(undefined)
+const CofounderContext = createContext<CofounderContextType | undefined>(
+  undefined
+);
 
 export const useCofounder = () => {
-  const context = useContext(CofounderContext)
+  const context = useContext(CofounderContext);
   if (context === undefined) {
-    throw new Error('useCofounder must be used within a CofounderProvider')
+    throw new Error("useCofounder must be used within a CofounderProvider");
   }
-  return context
-}
+  return context;
+};
 
 // Mock data for demonstration
 const MOCK_PROFILES: CofounderProfile[] = [
@@ -98,7 +100,7 @@ const MOCK_PROFILES: CofounderProfile[] = [
     languages: ["English", "Mandarin"],
     linkedin: "https://linkedin.com/in/sarahchen",
     github: "https://github.com/sarahchen",
-    portfolio: "https://sarahchen.dev"
+    portfolio: "https://sarahchen.dev",
   },
   {
     id: "2",
@@ -124,7 +126,7 @@ const MOCK_PROFILES: CofounderProfile[] = [
     timezone: "UTC-8",
     languages: ["English", "Spanish"],
     linkedin: "https://linkedin.com/in/alexrodriguez",
-    twitter: "https://twitter.com/alexrodriguez"
+    twitter: "https://twitter.com/alexrodriguez",
   },
   {
     id: "3",
@@ -150,7 +152,7 @@ const MOCK_PROFILES: CofounderProfile[] = [
     timezone: "UTC+5:30",
     languages: ["English", "Hindi"],
     linkedin: "https://linkedin.com/in/priyapatel",
-    behance: "https://behance.net/priyapatel"
+    behance: "https://behance.net/priyapatel",
   },
   {
     id: "4",
@@ -176,7 +178,7 @@ const MOCK_PROFILES: CofounderProfile[] = [
     timezone: "UTC-5",
     languages: ["English"],
     linkedin: "https://linkedin.com/in/marcusjohnson",
-    github: "https://github.com/marcusjohnson"
+    github: "https://github.com/marcusjohnson",
   },
   {
     id: "5",
@@ -202,135 +204,125 @@ const MOCK_PROFILES: CofounderProfile[] = [
     timezone: "UTC+0",
     languages: ["English", "French"],
     linkedin: "https://linkedin.com/in/emmawilson",
-    researchgate: "https://researchgate.net/emma-wilson"
-  }
-]
+    researchgate: "https://researchgate.net/emma-wilson",
+  },
+];
 
-export const CofounderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profiles, setProfiles] = useState<CofounderProfile[]>(MOCK_PROFILES)
-  const [savedProfiles, setSavedProfiles] = useState<string[]>([])
-  const [connectionRequests, setConnectionRequests] = useState<string[]>([])
-  const [conversations, setConversations] = useState<any[]>([])
-
-  // Load data from localStorage on mount
-  useEffect(() => {
-    const savedProfilesData = localStorage.getItem('cofounder-saved-profiles')
-    const connectionRequestsData = localStorage.getItem('cofounder-connection-requests')
-    const conversationsData = localStorage.getItem('cofounder-conversations')
-    
-    if (savedProfilesData) {
-      setSavedProfiles(JSON.parse(savedProfilesData))
-    }
-    if (connectionRequestsData) {
-      setConnectionRequests(JSON.parse(connectionRequestsData))
-    }
-    if (conversationsData) {
-      setConversations(JSON.parse(conversationsData))
-    }
-  }, [])
-
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    localStorage.setItem('cofounder-saved-profiles', JSON.stringify(savedProfiles))
-  }, [savedProfiles])
-
-  useEffect(() => {
-    localStorage.setItem('cofounder-connection-requests', JSON.stringify(connectionRequests))
-  }, [connectionRequests])
-
-  useEffect(() => {
-    localStorage.setItem('cofounder-conversations', JSON.stringify(conversations))
-  }, [conversations])
+export const CofounderProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [profiles, setProfiles] = useState<CofounderProfile[]>(MOCK_PROFILES);
+  const [savedProfiles, setSavedProfiles] = useState<string[]>([]);
+  const [connectionRequests, setConnectionRequests] = useState<string[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
 
   const addProfile = (profile: CofounderProfile) => {
-    setProfiles(prev => [...prev, profile])
-  }
+    setProfiles((prev) => [...prev, profile]);
+  };
 
   const updateProfile = (id: string, updates: Partial<CofounderProfile>) => {
-    setProfiles(prev => prev.map(profile => 
-      profile.id === id ? { ...profile, ...updates } : profile
-    ))
-  }
+    setProfiles((prev) =>
+      prev.map((profile) =>
+        profile.id === id ? { ...profile, ...updates } : profile
+      )
+    );
+  };
 
   const deleteProfile = (id: string) => {
-    setProfiles(prev => prev.filter(profile => profile.id !== id))
-    setSavedProfiles(prev => prev.filter(profileId => profileId !== id))
-    setConnectionRequests(prev => prev.filter(profileId => profileId !== id))
-  }
+    setProfiles((prev) => prev.filter((profile) => profile.id !== id));
+    setSavedProfiles((prev) => prev.filter((profileId) => profileId !== id));
+    setConnectionRequests((prev) =>
+      prev.filter((profileId) => profileId !== id)
+    );
+  };
 
   const saveProfile = (profileId: string) => {
     if (!savedProfiles.includes(profileId)) {
-      setSavedProfiles(prev => [...prev, profileId])
+      setSavedProfiles((prev) => [...prev, profileId]);
     }
-  }
+  };
 
   const unsaveProfile = (profileId: string) => {
-    setSavedProfiles(prev => prev.filter(id => id !== profileId))
-  }
+    setSavedProfiles((prev) => prev.filter((id) => id !== profileId));
+  };
 
   const sendConnectionRequest = (profileId: string) => {
     if (!connectionRequests.includes(profileId)) {
-      setConnectionRequests(prev => [...prev, profileId])
+      setConnectionRequests((prev) => [...prev, profileId]);
     }
-  }
+  };
 
   const acceptConnectionRequest = (profileId: string) => {
-    setConnectionRequests(prev => prev.filter(id => id !== profileId))
+    setConnectionRequests((prev) => prev.filter((id) => id !== profileId));
     // Add to conversations if not already exists
-    if (!conversations.find(conv => conv.profileId === profileId)) {
-      setConversations(prev => [...prev, {
-        profileId,
-        messages: [],
-        lastMessage: null,
-        unreadCount: 0
-      }])
+    if (!conversations.find((conv) => conv.profileId === profileId)) {
+      setConversations((prev) => [
+        ...prev,
+        {
+          profileId,
+          messages: [],
+          lastMessage: null,
+          unreadCount: 0,
+        },
+      ]);
     }
-  }
+  };
 
   const rejectConnectionRequest = (profileId: string) => {
-    setConnectionRequests(prev => prev.filter(id => id !== profileId))
-  }
+    setConnectionRequests((prev) => prev.filter((id) => id !== profileId));
+  };
 
   const sendMessage = (profileId: string, message: string) => {
-    const conversation = conversations.find(conv => conv.profileId === profileId)
+    const conversation = conversations.find(
+      (conv) => conv.profileId === profileId
+    );
     const newMessage = {
       id: Date.now().toString(),
       text: message,
       timestamp: new Date(),
-      sender: 'user'
-    }
+      sender: "user",
+    };
 
     if (conversation) {
-      setConversations(prev => prev.map(conv => 
-        conv.profileId === profileId 
-          ? { ...conv, messages: [...conv.messages, newMessage], lastMessage: newMessage }
-          : conv
-      ))
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.profileId === profileId
+            ? {
+                ...conv,
+                messages: [...conv.messages, newMessage],
+                lastMessage: newMessage,
+              }
+            : conv
+        )
+      );
     } else {
-      setConversations(prev => [...prev, {
-        profileId,
-        messages: [newMessage],
-        lastMessage: newMessage,
-        unreadCount: 0
-      }])
+      setConversations((prev) => [
+        ...prev,
+        {
+          profileId,
+          messages: [newMessage],
+          lastMessage: newMessage,
+          unreadCount: 0,
+        },
+      ]);
     }
-  }
+  };
 
   const getProfileById = (id: string) => {
-    return profiles.find(profile => profile.id === id)
-  }
+    return profiles.find((profile) => profile.id === id);
+  };
 
   const isProfileSaved = (profileId: string) => {
-    return savedProfiles.includes(profileId)
-  }
+    return savedProfiles.includes(profileId);
+  };
 
   const hasConnectionRequest = (profileId: string) => {
-    return connectionRequests.includes(profileId)
-  }
+    return connectionRequests.includes(profileId);
+  };
 
   const getConversation = (profileId: string) => {
-    return conversations.find(conv => conv.profileId === profileId)
-  }
+    return conversations.find((conv) => conv.profileId === profileId);
+  };
 
   const value: CofounderContextType = {
     profiles,
@@ -353,12 +345,12 @@ export const CofounderProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     getProfileById,
     isProfileSaved,
     hasConnectionRequest,
-    getConversation
-  }
+    getConversation,
+  };
 
   return (
     <CofounderContext.Provider value={value}>
       {children}
     </CofounderContext.Provider>
-  )
-}
+  );
+};

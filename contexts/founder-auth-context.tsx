@@ -1,8 +1,20 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import type { Founder, PlatformFeature, LaunchPhase, Employee, Permission } from "@/types/founder"
+import type React from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import type {
+  Founder,
+  PlatformFeature,
+  LaunchPhase,
+  Employee,
+  Permission,
+} from "@/types/founder";
 
 // Founder-specific permissions that give complete control
 const FOUNDER_PERMISSIONS: Permission[] = [
@@ -42,41 +54,46 @@ const FOUNDER_PERMISSIONS: Permission[] = [
   "founder:jobs", // Jobs management
   "founder:feed", // Feed management
   "founder:files", // Files management
-]
+];
 
 interface FounderAuthContextType {
-  founder: Founder | null
-  isLoading: boolean
-  error: Error | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-  hasPermission: (permission: Permission) => boolean
-  isFounder: () => boolean
-  
+  founder: Founder | null;
+  isLoading: boolean;
+  error: Error | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  hasPermission: (permission: Permission) => boolean;
+  isFounder: () => boolean;
+
   // Feature management
-  getPlatformFeatures: () => Promise<PlatformFeature[]>
-  toggleFeature: (featureId: string, enabled: boolean) => Promise<void>
-  updateFeaturePhase: (featureId: string, phase: string) => Promise<void>
-  createFeature: (feature: Omit<PlatformFeature, 'id'>) => Promise<PlatformFeature>
-  deleteFeature: (featureId: string) => Promise<void>
-  
+  getPlatformFeatures: () => Promise<PlatformFeature[]>;
+  toggleFeature: (featureId: string, enabled: boolean) => Promise<void>;
+  updateFeaturePhase: (featureId: string, phase: string) => Promise<void>;
+  createFeature: (
+    feature: Omit<PlatformFeature, "id">
+  ) => Promise<PlatformFeature>;
+  deleteFeature: (featureId: string) => Promise<void>;
+
   // Launch phase management
-  getLaunchPhases: () => Promise<LaunchPhase[]>
-  createLaunchPhase: (phase: Omit<LaunchPhase, 'id'>) => Promise<LaunchPhase>
-  updateLaunchPhase: (phase: LaunchPhase) => Promise<void>
-  deleteLaunchPhase: (phaseId: string) => Promise<void>
-  
+  getLaunchPhases: () => Promise<LaunchPhase[]>;
+  createLaunchPhase: (phase: Omit<LaunchPhase, "id">) => Promise<LaunchPhase>;
+  updateLaunchPhase: (phase: LaunchPhase) => Promise<void>;
+  deleteLaunchPhase: (phaseId: string) => Promise<void>;
+
   // Employee management
-  getEmployees: () => Promise<Employee[]>
-  createEmployee: (employee: Omit<Employee, 'id'>) => Promise<Employee>
-  updateEmployeePermissions: (employeeId: string, permissions: Permission[]) => Promise<void>
-  deactivateEmployee: (employeeId: string) => Promise<void>
-  
+  getEmployees: () => Promise<Employee[]>;
+  createEmployee: (employee: Omit<Employee, "id">) => Promise<Employee>;
+  updateEmployeePermissions: (
+    employeeId: string,
+    permissions: Permission[]
+  ) => Promise<void>;
+  deactivateEmployee: (employeeId: string) => Promise<void>;
+
   // Platform control
-  getSystemStatus: () => Promise<any>
-  updateSystemConfig: (config: Record<string, any>) => Promise<void>
-  getAnalytics: () => Promise<any>
-  getRevenueMetrics: () => Promise<any>
+  getSystemStatus: () => Promise<any>;
+  updateSystemConfig: (config: Record<string, any>) => Promise<void>;
+  getAnalytics: () => Promise<any>;
+  getRevenueMetrics: () => Promise<any>;
 }
 
 const FounderAuthContext = createContext<FounderAuthContextType>({
@@ -104,7 +121,7 @@ const FounderAuthContext = createContext<FounderAuthContextType>({
   updateSystemConfig: async () => {},
   getAnalytics: async () => ({}),
   getRevenueMetrics: async () => ({}),
-})
+});
 
 // Mock founder data (you - the platform founder)
 const mockFounder: Founder = {
@@ -130,155 +147,176 @@ const mockFounder: Founder = {
   equityStake: 60,
   votingRights: 100,
   boardPosition: "CEO",
-  investmentContribution: 50000
-}
+  investmentContribution: 50000,
+};
 
-export function FounderAuthProvider({ children }: { children: React.ReactNode }) {
-  const [founder, setFounder] = useState<Founder | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+export function FounderAuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [founder, setFounder] = useState<Founder | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   // Simulate loading founder on mount
   useEffect(() => {
     const loadFounder = async () => {
       try {
         // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        
-        // Check if founder is already logged in (from localStorage)
-        const storedFounder = localStorage.getItem("growthlab_founder")
-        if (storedFounder) {
-          setFounder(JSON.parse(storedFounder))
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("An unknown error occurred"))
-      } finally {
-        setIsLoading(false)
-      }
-    }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    loadFounder()
-  }, [])
+        // No persisted founder - will be null until login
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("An unknown error occurred")
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFounder();
+  }, []);
 
   // Founder login function
   const login = async (email: string, password: string) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Founder authentication logic
       if (email === "founder@growthlab.sg" && password === "Founder2024!") {
-        setFounder(mockFounder)
-        localStorage.setItem("growthlab_founder", JSON.stringify(mockFounder))
-        setError(null)
+        setFounder(mockFounder);
+        setError(null);
       } else {
-        throw new Error("Invalid founder credentials")
+        throw new Error("Invalid founder credentials");
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error("Login failed"))
-      setFounder(null)
+      setError(err instanceof Error ? err : new Error("Login failed"));
+      setFounder(null);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Founder logout function
   const logout = async () => {
-    setFounder(null)
-    localStorage.removeItem("growthlab_founder")
-  }
+    setFounder(null);
+  };
 
   // Check if user has specific permission
-  const hasPermission = useCallback((permission: Permission): boolean => {
-    if (!founder) return false
-    return founder.permissions.includes(permission) || founder.permissions.includes("founder:all")
-  }, [founder])
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      if (!founder) return false;
+      return (
+        founder.permissions.includes(permission) ||
+        founder.permissions.includes("founder:all")
+      );
+    },
+    [founder]
+  );
 
   // Check if user is founder
   const isFounder = useCallback((): boolean => {
-    return founder?.isFounder === true
-  }, [founder])
+    return founder?.isFounder === true;
+  }, [founder]);
 
   // Feature management functions
   const getPlatformFeatures = async (): Promise<PlatformFeature[]> => {
     // Mock implementation - replace with actual API calls
-    return []
-  }
+    return [];
+  };
 
-  const toggleFeature = async (featureId: string, enabled: boolean): Promise<void> => {
+  const toggleFeature = async (
+    featureId: string,
+    enabled: boolean
+  ): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Toggling feature ${featureId} to ${enabled}`)
-  }
+    console.log(`Toggling feature ${featureId} to ${enabled}`);
+  };
 
-  const updateFeaturePhase = async (featureId: string, phase: string): Promise<void> => {
+  const updateFeaturePhase = async (
+    featureId: string,
+    phase: string
+  ): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Updating feature ${featureId} to phase ${phase}`)
-  }
+    console.log(`Updating feature ${featureId} to phase ${phase}`);
+  };
 
-  const createFeature = async (feature: Omit<PlatformFeature, 'id'>): Promise<PlatformFeature> => {
+  const createFeature = async (
+    feature: Omit<PlatformFeature, "id">
+  ): Promise<PlatformFeature> => {
     // Mock implementation - replace with actual API calls
     const newFeature: PlatformFeature = {
       ...feature,
       id: `feature_${Date.now()}`,
-    }
-    return newFeature
-  }
+    };
+    return newFeature;
+  };
 
   const deleteFeature = async (featureId: string): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Deleting feature ${featureId}`)
-  }
+    console.log(`Deleting feature ${featureId}`);
+  };
 
   // Launch phase management functions
   const getLaunchPhases = async (): Promise<LaunchPhase[]> => {
     // Mock implementation - replace with actual API calls
-    return []
-  }
+    return [];
+  };
 
-  const createLaunchPhase = async (phase: Omit<LaunchPhase, 'id'>): Promise<LaunchPhase> => {
+  const createLaunchPhase = async (
+    phase: Omit<LaunchPhase, "id">
+  ): Promise<LaunchPhase> => {
     // Mock implementation - replace with actual API calls
     const newPhase: LaunchPhase = {
       ...phase,
       id: `phase_${Date.now()}`,
-    }
-    return newPhase
-  }
+    };
+    return newPhase;
+  };
 
   const updateLaunchPhase = async (phase: LaunchPhase): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Updating phase ${phase.id}`)
-  }
+    console.log(`Updating phase ${phase.id}`);
+  };
 
   const deleteLaunchPhase = async (phaseId: string): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Deleting phase ${phaseId}`)
-  }
+    console.log(`Deleting phase ${phaseId}`);
+  };
 
   // Employee management functions
   const getEmployees = async (): Promise<Employee[]> => {
     // Mock implementation - replace with actual API calls
-    return []
-  }
+    return [];
+  };
 
-  const createEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee> => {
+  const createEmployee = async (
+    employee: Omit<Employee, "id">
+  ): Promise<Employee> => {
     // Mock implementation - replace with actual API calls
     const newEmployee: Employee = {
       ...employee,
       id: `employee_${Date.now()}`,
-    }
-    return newEmployee
-  }
+    };
+    return newEmployee;
+  };
 
-  const updateEmployeePermissions = async (employeeId: string, permissions: Permission[]): Promise<void> => {
+  const updateEmployeePermissions = async (
+    employeeId: string,
+    permissions: Permission[]
+  ): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Updating permissions for employee ${employeeId}`)
-  }
+    console.log(`Updating permissions for employee ${employeeId}`);
+  };
 
   const deactivateEmployee = async (employeeId: string): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log(`Deactivating employee ${employeeId}`)
-  }
+    console.log(`Deactivating employee ${employeeId}`);
+  };
 
   // Platform control functions
   const getSystemStatus = async (): Promise<any> => {
@@ -290,14 +328,16 @@ export function FounderAuthProvider({ children }: { children: React.ReactNode })
       systemLoad: "23%",
       databaseStatus: "operational",
       apiStatus: "operational",
-      storageUsage: "67%"
-    }
-  }
+      storageUsage: "67%",
+    };
+  };
 
-  const updateSystemConfig = async (config: Record<string, any>): Promise<void> => {
+  const updateSystemConfig = async (
+    config: Record<string, any>
+  ): Promise<void> => {
     // Mock implementation - replace with actual API calls
-    console.log("Updating system config:", config)
-  }
+    console.log("Updating system config:", config);
+  };
 
   const getAnalytics = async (): Promise<any> => {
     // Mock implementation - replace with actual API calls
@@ -305,9 +345,9 @@ export function FounderAuthProvider({ children }: { children: React.ReactNode })
       totalUsers: 15420,
       activeUsers: 1247,
       revenue: 125000,
-      growth: 23.5
-    }
-  }
+      growth: 23.5,
+    };
+  };
 
   const getRevenueMetrics = async (): Promise<any> => {
     // Mock implementation - replace with actual API calls
@@ -315,9 +355,9 @@ export function FounderAuthProvider({ children }: { children: React.ReactNode })
       monthlyRecurringRevenue: 125000,
       annualRecurringRevenue: 1500000,
       customerLifetimeValue: 2500,
-      churnRate: 2.1
-    }
-  }
+      churnRate: 2.1,
+    };
+  };
 
   const value: FounderAuthContextType = {
     founder,
@@ -344,19 +384,19 @@ export function FounderAuthProvider({ children }: { children: React.ReactNode })
     updateSystemConfig,
     getAnalytics,
     getRevenueMetrics,
-  }
+  };
 
   return (
     <FounderAuthContext.Provider value={value}>
       {children}
     </FounderAuthContext.Provider>
-  )
+  );
 }
 
 export function useFounderAuth() {
-  const context = useContext(FounderAuthContext)
+  const context = useContext(FounderAuthContext);
   if (!context) {
-    throw new Error("useFounderAuth must be used within a FounderAuthProvider")
+    throw new Error("useFounderAuth must be used within a FounderAuthProvider");
   }
-  return context
+  return context;
 }

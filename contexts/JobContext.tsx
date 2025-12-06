@@ -1,117 +1,117 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface JobPosting {
-  id: string
-  title: string
-  company: string
-  companyId: string
-  companyLogo: string
-  location: string
-  type: string
-  experience: string
-  salary: string
-  salaryMin: number
-  salaryMax: number
-  currency: string
-  visaSponsorship: boolean
-  remoteWork: string
-  description: string
-  requirements: string[]
-  skills: string[]
-  benefits: string[]
-  posted: string
-  postedDate: Date
-  applications: number
-  views: number
-  companySize: string
-  fundingStage: string
-  industry: string
-  matchScore: number
-  urgency: string
-  featured: boolean
-  status: "draft" | "published" | "paused" | "closed"
-  applicationMethod: string
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-  department: string
-  reportingTo: string
-  teamSize: number
-  workSchedule: string
-  travelRequired: boolean
-  travelPercentage: number
-  equityOffered: boolean
-  equityDetails: string
-  stockOptions: boolean
-  education: string[]
-  workAuthorization: string[]
-  backgroundCheck: boolean
-  companyValues: string[]
-  workEnvironment: string
-  teamCulture: string
-  growthOpportunities: string[]
-  learningBudget: number
-  conferenceBudget: number
-  applicationSteps: string[]
-  interviewProcess: string
-  timeline: string
-  tags: string[]
-  [key: string]: any
+  id: string;
+  title: string;
+  company: string;
+  companyId: string;
+  companyLogo: string;
+  location: string;
+  type: string;
+  experience: string;
+  salary: string;
+  salaryMin: number;
+  salaryMax: number;
+  currency: string;
+  visaSponsorship: boolean;
+  remoteWork: string;
+  description: string;
+  requirements: string[];
+  skills: string[];
+  benefits: string[];
+  posted: string;
+  postedDate: Date;
+  applications: number;
+  views: number;
+  companySize: string;
+  fundingStage: string;
+  industry: string;
+  matchScore: number;
+  urgency: string;
+  featured: boolean;
+  status: "draft" | "published" | "paused" | "closed";
+  applicationMethod: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  department: string;
+  reportingTo: string;
+  teamSize: number;
+  workSchedule: string;
+  travelRequired: boolean;
+  travelPercentage: number;
+  equityOffered: boolean;
+  equityDetails: string;
+  stockOptions: boolean;
+  education: string[];
+  workAuthorization: string[];
+  backgroundCheck: boolean;
+  companyValues: string[];
+  workEnvironment: string;
+  teamCulture: string;
+  growthOpportunities: string[];
+  learningBudget: number;
+  conferenceBudget: number;
+  applicationSteps: string[];
+  interviewProcess: string;
+  timeline: string;
+  tags: string[];
+  [key: string]: any;
 }
 
 interface JobContextType {
-  jobs: JobPosting[]
-  setJobs: (jobs: JobPosting[]) => void
-  savedJobs: string[]
-  setSavedJobs: (jobs: string[]) => void
-  applications: string[]
-  setApplications: (applications: string[]) => void
-  addJob: (job: JobPosting) => void
-  updateJob: (id: string, updates: Partial<JobPosting>) => void
-  deleteJob: (id: string) => void
-  saveJob: (jobId: string) => void
-  unsaveJob: (jobId: string) => void
-  applyToJob: (jobId: string) => void
-  withdrawApplication: (jobId: string) => void
-  getJobById: (id: string) => JobPosting | undefined
-  getJobsByCompany: (companyId: string) => JobPosting[]
-  getJobsByCreator: (creatorId: string) => JobPosting[]
-  isJobSaved: (jobId: string) => boolean
-  hasApplied: (jobId: string) => boolean
-  filterJobs: (filters: JobFilters) => JobPosting[]
+  jobs: JobPosting[];
+  setJobs: (jobs: JobPosting[]) => void;
+  savedJobs: string[];
+  setSavedJobs: (jobs: string[]) => void;
+  applications: string[];
+  setApplications: (applications: string[]) => void;
+  addJob: (job: JobPosting) => void;
+  updateJob: (id: string, updates: Partial<JobPosting>) => void;
+  deleteJob: (id: string) => void;
+  saveJob: (jobId: string) => void;
+  unsaveJob: (jobId: string) => void;
+  applyToJob: (jobId: string) => void;
+  withdrawApplication: (jobId: string) => void;
+  getJobById: (id: string) => JobPosting | undefined;
+  getJobsByCompany: (companyId: string) => JobPosting[];
+  getJobsByCreator: (creatorId: string) => JobPosting[];
+  isJobSaved: (jobId: string) => boolean;
+  hasApplied: (jobId: string) => boolean;
+  filterJobs: (filters: JobFilters) => JobPosting[];
 }
 
 interface JobFilters {
-  search?: string
-  location?: string[]
-  type?: string[]
-  experience?: string[]
-  salaryMin?: number
-  salaryMax?: number
-  remoteWork?: string[]
-  industry?: string[]
-  companySize?: string[]
-  fundingStage?: string[]
-  skills?: string[]
-  benefits?: string[]
-  status?: string[]
-  featured?: boolean
-  visaSponsorship?: boolean
-  createdBy?: string
-  companyId?: string
+  search?: string;
+  location?: string[];
+  type?: string[];
+  experience?: string[];
+  salaryMin?: number;
+  salaryMax?: number;
+  remoteWork?: string[];
+  industry?: string[];
+  companySize?: string[];
+  fundingStage?: string[];
+  skills?: string[];
+  benefits?: string[];
+  status?: string[];
+  featured?: boolean;
+  visaSponsorship?: boolean;
+  createdBy?: string;
+  companyId?: string;
 }
 
-const JobContext = createContext<JobContextType | undefined>(undefined)
+const JobContext = createContext<JobContextType | undefined>(undefined);
 
 export const useJobs = () => {
-  const context = useContext(JobContext)
+  const context = useContext(JobContext);
   if (context === undefined) {
-    throw new Error('useJobs must be used within a JobProvider')
+    throw new Error("useJobs must be used within a JobProvider");
   }
-  return context
-}
+  return context;
+};
 
 // Mock data for demonstration
 const MOCK_JOBS: JobPosting[] = [
@@ -130,15 +130,29 @@ const MOCK_JOBS: JobPosting[] = [
     currency: "SGD",
     visaSponsorship: true,
     remoteWork: "Hybrid",
-    description: "Join our AI research team to develop cutting-edge machine learning algorithms for enterprise workflow automation.",
+    description:
+      "Join our AI research team to develop cutting-edge machine learning algorithms for enterprise workflow automation.",
     requirements: [
       "PhD in Computer Science, AI, or related field",
       "5+ years of experience in machine learning research",
       "Strong background in deep learning and neural networks",
-      "Experience with TensorFlow, PyTorch, and MLOps"
+      "Experience with TensorFlow, PyTorch, and MLOps",
     ],
-    skills: ["Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Python", "Research"],
-    benefits: ["Health Insurance", "Stock Options", "Research Budget", "Conference Attendance", "Flexible Hours"],
+    skills: [
+      "Machine Learning",
+      "Deep Learning",
+      "TensorFlow",
+      "PyTorch",
+      "Python",
+      "Research",
+    ],
+    benefits: [
+      "Health Insurance",
+      "Stock Options",
+      "Research Budget",
+      "Conference Attendance",
+      "Flexible Hours",
+    ],
     posted: "3 days ago",
     postedDate: new Date("2024-01-13"),
     applications: 28,
@@ -168,8 +182,13 @@ const MOCK_JOBS: JobPosting[] = [
     backgroundCheck: true,
     companyValues: ["Innovation", "Excellence", "Collaboration", "Impact"],
     workEnvironment: "Research-focused with access to cutting-edge hardware",
-    teamCulture: "We foster a culture of intellectual curiosity and breakthrough innovation",
-    growthOpportunities: ["Lead research projects", "Mentor junior researchers", "Patent development"],
+    teamCulture:
+      "We foster a culture of intellectual curiosity and breakthrough innovation",
+    growthOpportunities: [
+      "Lead research projects",
+      "Mentor junior researchers",
+      "Patent development",
+    ],
     learningBudget: 5000,
     conferenceBudget: 3000,
     applicationSteps: [
@@ -178,11 +197,11 @@ const MOCK_JOBS: JobPosting[] = [
       "Research presentation",
       "Technical deep-dive interview",
       "Team fit interview",
-      "Final interview with leadership"
+      "Final interview with leadership",
     ],
     interviewProcess: "4-5 rounds over 3 weeks",
     timeline: "Hiring within 6-8 weeks",
-    tags: ["AI Research", "Machine Learning", "Deep Learning", "Senior", "PhD"]
+    tags: ["AI Research", "Machine Learning", "Deep Learning", "Senior", "PhD"],
   },
   {
     id: "2",
@@ -199,15 +218,23 @@ const MOCK_JOBS: JobPosting[] = [
     currency: "USD",
     visaSponsorship: true,
     remoteWork: "Remote",
-    description: "Build scalable web applications and APIs for our data analytics platform serving enterprise clients.",
+    description:
+      "Build scalable web applications and APIs for our data analytics platform serving enterprise clients.",
     requirements: [
       "5+ years of full-stack development experience",
       "Expertise in React, Node.js, and TypeScript",
       "Experience with cloud platforms (AWS, GCP, or Azure)",
-      "Strong understanding of database design and optimization"
+      "Strong understanding of database design and optimization",
     ],
     skills: ["React", "Node.js", "TypeScript", "AWS", "PostgreSQL", "Docker"],
-    benefits: ["Health Insurance", "Dental", "Vision", "401k", "Stock Options", "Unlimited PTO"],
+    benefits: [
+      "Health Insurance",
+      "Dental",
+      "Vision",
+      "401k",
+      "Stock Options",
+      "Unlimited PTO",
+    ],
     posted: "1 week ago",
     postedDate: new Date("2024-01-06"),
     applications: 45,
@@ -238,7 +265,11 @@ const MOCK_JOBS: JobPosting[] = [
     companyValues: ["Innovation", "Quality", "Collaboration", "Growth"],
     workEnvironment: "Remote-first with optional office access",
     teamCulture: "We value work-life balance and continuous learning",
-    growthOpportunities: ["Technical leadership", "Architecture decisions", "Mentoring"],
+    growthOpportunities: [
+      "Technical leadership",
+      "Architecture decisions",
+      "Mentoring",
+    ],
     learningBudget: 3000,
     conferenceBudget: 2000,
     applicationSteps: [
@@ -246,11 +277,11 @@ const MOCK_JOBS: JobPosting[] = [
       "Technical assessment",
       "Code review session",
       "System design interview",
-      "Cultural fit interview"
+      "Cultural fit interview",
     ],
     interviewProcess: "3-4 rounds over 2 weeks",
     timeline: "Hiring within 4-6 weeks",
-    tags: ["Full Stack", "React", "Node.js", "TypeScript", "Senior", "Remote"]
+    tags: ["Full Stack", "React", "Node.js", "TypeScript", "Senior", "Remote"],
   },
   {
     id: "3",
@@ -267,15 +298,29 @@ const MOCK_JOBS: JobPosting[] = [
     currency: "GBP",
     visaSponsorship: false,
     remoteWork: "Hybrid",
-    description: "Drive product marketing strategy for our sustainable technology solutions targeting enterprise clients.",
+    description:
+      "Drive product marketing strategy for our sustainable technology solutions targeting enterprise clients.",
     requirements: [
       "3+ years of product marketing experience",
       "Experience in B2B SaaS or technology sector",
       "Strong analytical and communication skills",
-      "Experience with marketing automation tools"
+      "Experience with marketing automation tools",
     ],
-    skills: ["Product Marketing", "B2B Marketing", "Analytics", "Content Strategy", "Salesforce", "HubSpot"],
-    benefits: ["Health Insurance", "Pension", "25 Days Holiday", "Learning Budget", "Gym Membership"],
+    skills: [
+      "Product Marketing",
+      "B2B Marketing",
+      "Analytics",
+      "Content Strategy",
+      "Salesforce",
+      "HubSpot",
+    ],
+    benefits: [
+      "Health Insurance",
+      "Pension",
+      "25 Days Holiday",
+      "Learning Budget",
+      "Gym Membership",
+    ],
     posted: "5 days ago",
     postedDate: new Date("2024-01-11"),
     applications: 32,
@@ -305,8 +350,13 @@ const MOCK_JOBS: JobPosting[] = [
     backgroundCheck: false,
     companyValues: ["Sustainability", "Innovation", "Impact", "Collaboration"],
     workEnvironment: "Hybrid with 3 days in office",
-    teamCulture: "We're passionate about creating a sustainable future through technology",
-    growthOpportunities: ["Marketing leadership", "Product strategy", "Team management"],
+    teamCulture:
+      "We're passionate about creating a sustainable future through technology",
+    growthOpportunities: [
+      "Marketing leadership",
+      "Product strategy",
+      "Team management",
+    ],
     learningBudget: 2500,
     conferenceBudget: 1500,
     applicationSteps: [
@@ -314,189 +364,193 @@ const MOCK_JOBS: JobPosting[] = [
       "Initial screening call",
       "Marketing strategy presentation",
       "Team interview",
-      "Final interview with leadership"
+      "Final interview with leadership",
     ],
     interviewProcess: "3-4 rounds over 2-3 weeks",
     timeline: "Hiring within 5-7 weeks",
-    tags: ["Product Marketing", "B2B", "SaaS", "Mid-level", "Hybrid", "Sustainability"]
-  }
-]
+    tags: [
+      "Product Marketing",
+      "B2B",
+      "SaaS",
+      "Mid-level",
+      "Hybrid",
+      "Sustainability",
+    ],
+  },
+];
 
-export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [jobs, setJobs] = useState<JobPosting[]>(MOCK_JOBS)
-  const [savedJobs, setSavedJobs] = useState<string[]>([])
-  const [applications, setApplications] = useState<string[]>([])
-
-  // Load data from localStorage on mount
-  useEffect(() => {
-    const savedJobsData = localStorage.getItem('saved-jobs')
-    const applicationsData = localStorage.getItem('job-applications')
-    
-    if (savedJobsData) {
-      setSavedJobs(JSON.parse(savedJobsData))
-    }
-    if (applicationsData) {
-      setApplications(JSON.parse(applicationsData))
-    }
-  }, [])
-
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    localStorage.setItem('saved-jobs', JSON.stringify(savedJobs))
-  }, [savedJobs])
-
-  useEffect(() => {
-    localStorage.setItem('job-applications', JSON.stringify(applications))
-  }, [applications])
+export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [jobs, setJobs] = useState<JobPosting[]>(MOCK_JOBS);
+  const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [applications, setApplications] = useState<string[]>([]);
 
   const addJob = (job: JobPosting) => {
-    setJobs(prev => [...prev, job])
-  }
+    setJobs((prev) => [...prev, job]);
+  };
 
   const updateJob = (id: string, updates: Partial<JobPosting>) => {
-    setJobs(prev => prev.map(job => 
-      job.id === id ? { ...job, ...updates } : job
-    ))
-  }
+    setJobs((prev) =>
+      prev.map((job) => (job.id === id ? { ...job, ...updates } : job))
+    );
+  };
 
   const deleteJob = (id: string) => {
-    setJobs(prev => prev.filter(job => job.id !== id))
-    setSavedJobs(prev => prev.filter(jobId => jobId !== id))
-    setApplications(prev => prev.filter(jobId => jobId !== id))
-  }
+    setJobs((prev) => prev.filter((job) => job.id !== id));
+    setSavedJobs((prev) => prev.filter((jobId) => jobId !== id));
+    setApplications((prev) => prev.filter((jobId) => jobId !== id));
+  };
 
   const saveJob = (jobId: string) => {
     if (!savedJobs.includes(jobId)) {
-      setSavedJobs(prev => [...prev, jobId])
+      setSavedJobs((prev) => [...prev, jobId]);
     }
-  }
+  };
 
   const unsaveJob = (jobId: string) => {
-    setSavedJobs(prev => prev.filter(id => id !== jobId))
-  }
+    setSavedJobs((prev) => prev.filter((id) => id !== jobId));
+  };
 
   const applyToJob = (jobId: string) => {
     if (!applications.includes(jobId)) {
-      setApplications(prev => [...prev, jobId])
+      setApplications((prev) => [...prev, jobId]);
       // Update application count
-      updateJob(jobId, { 
-        applications: (jobs.find(j => j.id === jobId)?.applications || 0) + 1 
-      })
+      updateJob(jobId, {
+        applications: (jobs.find((j) => j.id === jobId)?.applications || 0) + 1,
+      });
     }
-  }
+  };
 
   const withdrawApplication = (jobId: string) => {
-    setApplications(prev => prev.filter(id => id !== jobId))
+    setApplications((prev) => prev.filter((id) => id !== jobId));
     // Update application count
-    updateJob(jobId, { 
-      applications: Math.max(0, (jobs.find(j => j.id === jobId)?.applications || 0) - 1)
-    })
-  }
+    updateJob(jobId, {
+      applications: Math.max(
+        0,
+        (jobs.find((j) => j.id === jobId)?.applications || 0) - 1
+      ),
+    });
+  };
 
   const getJobById = (id: string) => {
-    return jobs.find(job => job.id === id)
-  }
+    return jobs.find((job) => job.id === id);
+  };
 
   const getJobsByCompany = (companyId: string) => {
-    return jobs.filter(job => job.companyId === companyId)
-  }
+    return jobs.filter((job) => job.companyId === companyId);
+  };
 
   const getJobsByCreator = (creatorId: string) => {
-    return jobs.filter(job => job.createdBy === creatorId)
-  }
+    return jobs.filter((job) => job.createdBy === creatorId);
+  };
 
   const isJobSaved = (jobId: string) => {
-    return savedJobs.includes(jobId)
-  }
+    return savedJobs.includes(jobId);
+  };
 
   const hasApplied = (jobId: string) => {
-    return applications.includes(jobId)
-  }
+    return applications.includes(jobId);
+  };
 
   const filterJobs = (filters: JobFilters) => {
-    return jobs.filter(job => {
+    return jobs.filter((job) => {
       // Search filter
       if (filters.search) {
-        const searchLower = filters.search.toLowerCase()
-        const searchableText = `${job.title} ${job.company} ${job.description} ${job.skills.join(' ')}`.toLowerCase()
-        if (!searchableText.includes(searchLower)) return false
+        const searchLower = filters.search.toLowerCase();
+        const searchableText = `${job.title} ${job.company} ${
+          job.description
+        } ${job.skills.join(" ")}`.toLowerCase();
+        if (!searchableText.includes(searchLower)) return false;
       }
 
       // Location filter
       if (filters.location && filters.location.length > 0) {
-        if (!filters.location.some(loc => job.location.toLowerCase().includes(loc.toLowerCase()))) return false
+        if (
+          !filters.location.some((loc) =>
+            job.location.toLowerCase().includes(loc.toLowerCase())
+          )
+        )
+          return false;
       }
 
       // Type filter
       if (filters.type && filters.type.length > 0) {
-        if (!filters.type.includes(job.type)) return false
+        if (!filters.type.includes(job.type)) return false;
       }
 
       // Experience filter
       if (filters.experience && filters.experience.length > 0) {
-        if (!filters.experience.includes(job.experience)) return false
+        if (!filters.experience.includes(job.experience)) return false;
       }
 
       // Salary filter
-      if (filters.salaryMin && job.salaryMax < filters.salaryMin) return false
-      if (filters.salaryMax && job.salaryMin > filters.salaryMax) return false
+      if (filters.salaryMin && job.salaryMax < filters.salaryMin) return false;
+      if (filters.salaryMax && job.salaryMin > filters.salaryMax) return false;
 
       // Remote work filter
       if (filters.remoteWork && filters.remoteWork.length > 0) {
-        if (!filters.remoteWork.includes(job.remoteWork)) return false
+        if (!filters.remoteWork.includes(job.remoteWork)) return false;
       }
 
       // Industry filter
       if (filters.industry && filters.industry.length > 0) {
-        if (!filters.industry.includes(job.industry)) return false
+        if (!filters.industry.includes(job.industry)) return false;
       }
 
       // Company size filter
       if (filters.companySize && filters.companySize.length > 0) {
-        if (!filters.companySize.includes(job.companySize)) return false
+        if (!filters.companySize.includes(job.companySize)) return false;
       }
 
       // Funding stage filter
       if (filters.fundingStage && filters.fundingStage.length > 0) {
-        if (!filters.fundingStage.includes(job.fundingStage)) return false
+        if (!filters.fundingStage.includes(job.fundingStage)) return false;
       }
 
       // Skills filter
       if (filters.skills && filters.skills.length > 0) {
-        const hasRequiredSkills = filters.skills.some(skill => 
-          job.skills.some(jobSkill => jobSkill.toLowerCase().includes(skill.toLowerCase()))
-        )
-        if (!hasRequiredSkills) return false
+        const hasRequiredSkills = filters.skills.some((skill) =>
+          job.skills.some((jobSkill) =>
+            jobSkill.toLowerCase().includes(skill.toLowerCase())
+          )
+        );
+        if (!hasRequiredSkills) return false;
       }
 
       // Benefits filter
       if (filters.benefits && filters.benefits.length > 0) {
-        const hasRequiredBenefits = filters.benefits.some(benefit => 
-          job.benefits.some(jobBenefit => jobBenefit.toLowerCase().includes(benefit.toLowerCase()))
-        )
-        if (!hasRequiredBenefits) return false
+        const hasRequiredBenefits = filters.benefits.some((benefit) =>
+          job.benefits.some((jobBenefit) =>
+            jobBenefit.toLowerCase().includes(benefit.toLowerCase())
+          )
+        );
+        if (!hasRequiredBenefits) return false;
       }
 
       // Status filter
       if (filters.status && filters.status.length > 0) {
-        if (!filters.status.includes(job.status)) return false
+        if (!filters.status.includes(job.status)) return false;
       }
 
       // Featured filter
-      if (filters.featured !== undefined && job.featured !== filters.featured) return false
+      if (filters.featured !== undefined && job.featured !== filters.featured)
+        return false;
 
       // Visa sponsorship filter
-      if (filters.visaSponsorship && !job.visaSponsorship) return false
+      if (filters.visaSponsorship && !job.visaSponsorship) return false;
 
       // Created by filter
-      if (filters.createdBy && job.createdBy !== filters.createdBy) return false
+      if (filters.createdBy && job.createdBy !== filters.createdBy)
+        return false;
 
       // Company filter
-      if (filters.companyId && job.companyId !== filters.companyId) return false
+      if (filters.companyId && job.companyId !== filters.companyId)
+        return false;
 
-      return true
-    })
-  }
+      return true;
+    });
+  };
 
   const value: JobContextType = {
     jobs,
@@ -517,12 +571,8 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     getJobsByCreator,
     isJobSaved,
     hasApplied,
-    filterJobs
-  }
+    filterJobs,
+  };
 
-  return (
-    <JobContext.Provider value={value}>
-      {children}
-    </JobContext.Provider>
-  )
-}
+  return <JobContext.Provider value={value}>{children}</JobContext.Provider>;
+};

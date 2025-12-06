@@ -1064,16 +1064,16 @@ export function SecureFileSharing({
                       </tr>
                     ) : (
                       accessLogs.map((log) => (
-                        <tr key={log?.id} className="border-b">
-                          <td className="p-2">{log?.userName}</td>
+                        <tr key={log.id} className="border-b">
+                          <td className="p-2">{log.userName}</td>
                           <td className="p-2">
                             <Badge variant="outline" className="capitalize">
-                              {formatAccessType(log?.accessType)}
+                              {formatAccessType(log.accessType)}
                             </Badge>
                           </td>
-                          <td className="p-2">{log?.timestamp.toLocaleString()}</td>
-                          <td className="p-2">{log?.ipAddress}</td>
-                          <td className="p-2 truncate max-w-[150px]">{log?.deviceInfo}</td>
+                          <td className="p-2">{log.timestamp.toLocaleString()}</td>
+                          <td className="p-2">{log.ipAddress}</td>
+                          <td className="p-2 truncate max-w-[150px]">{log.deviceInfo}</td>
                         </tr>
                       ))
                     )}
