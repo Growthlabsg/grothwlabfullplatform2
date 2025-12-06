@@ -52,6 +52,9 @@ export interface Post {
   updatedAt?: string;
   isLiked: boolean;
   isSaved: boolean;
+  // For optimistic updates - pending state
+  isPending?: boolean;
+  pendingAttachments?: number;
 }
 
 export interface Comment {
@@ -66,6 +69,7 @@ export interface Comment {
   updatedAt?: string;
   isLiked: boolean;
   replies: Comment[];
+  isPending?: boolean;
 }
 
 export interface FeedResponse {
@@ -78,8 +82,8 @@ export interface FeedResponse {
 
 export interface CommentsResponse {
   comments: Comment[];
-  total: number; // Total top-level comments
-  totalAll: number; // Total all comments including replies
+  total: number;
+  totalAll: number;
   page: number;
   limit: number;
   hasNext: boolean;
@@ -171,16 +175,52 @@ export const feedApi = baseApi.injectEndpoints({
       invalidatesTags: ["Feed"],
     }),
 
-    // Like/Unlike post
+    // Like/Unlike post with optimistic update
     likePost: builder.mutation<{ message: string }, number>({
       query: (postId) => ({
         url: `/v1/feed/posts/${postId}/like`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, postId) => [
-        { type: "Post", id: postId },
-        "Feed",
-      ],
+      async onQueryStarted(postId, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as any;
+        const patchResults: any[] = [];
+
+        // Try to update all possible feed query variations
+        const feedTypes = [
+          "recommended",
+          "following",
+          "trending",
+          "recent",
+        ] as const;
+        for (const feed_type of feedTypes) {
+          for (let page = 1; page <= 10; page++) {
+            try {
+              const patchResult = dispatch(
+                feedApi.util.updateQueryData(
+                  "getFeed",
+                  { page, limit: 10, feed_type },
+                  (draft) => {
+                    const post = draft.posts.find((p) => p.id === postId);
+                    if (post) {
+                      post.isLiked = !post.isLiked;
+                      post.likesCount += post.isLiked ? 1 : -1;
+                    }
+                  }
+                )
+              );
+              patchResults.push(patchResult);
+            } catch {
+              // Query doesn't exist, skip
+            }
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResults.forEach((patch) => patch.undo());
+        }
+      },
     }),
 
     // Get post comments
@@ -197,7 +237,7 @@ export const feedApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Create comment
+    // Create comment with optimistic update
     createComment: builder.mutation<
       Comment,
       { postId: number; comment: CreateCommentRequest }
@@ -207,10 +247,147 @@ export const feedApi = baseApi.injectEndpoints({
         method: "POST",
         body: comment,
       }),
+      async onQueryStarted(
+        { postId, comment },
+        { dispatch, queryFulfilled, getState }
+      ) {
+        const state = getState() as any;
+        const user = state.auth?.user;
+        const tempId = Date.now();
+
+        const optimisticComment: Comment = {
+          id: tempId,
+          postID: postId,
+          commentAuthorID: user?.id || 0,
+          author: {
+            id: user?.id || 0,
+            firstName: user?.firstName || "You",
+            lastName: user?.lastName || "",
+            emailAddress: user?.emailAddress || "",
+            avatarURL: user?.avatarURL,
+            role: user?.role || "user",
+            status: "active",
+            isEmailVerified: true,
+            isVerified: user?.isVerified || false,
+            subscriptionTier: user?.subscriptionTier || "free",
+            totalConnections: 0,
+            totalPosts: 0,
+            totalEngagement: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          commentContent: comment.commentContent,
+          commentLikeCount: 0,
+          parentCommentID: comment.parentCommentID,
+          createdAt: new Date().toISOString(),
+          isLiked: false,
+          replies: [],
+          isPending: true,
+        };
+
+        // Update comments cache
+        const patchResult = dispatch(
+          feedApi.util.updateQueryData(
+            "getPostComments",
+            { postId, page: 1, limit: 20 },
+            (draft) => {
+              if (comment.parentCommentID) {
+                // Find parent and add reply (1 level nesting only)
+                const addReplyToParent = (comments: Comment[]): boolean => {
+                  for (const c of comments) {
+                    if (c.id === comment.parentCommentID) {
+                      c.replies = c.replies || [];
+                      c.replies.push(optimisticComment);
+                      return true;
+                    }
+                    // If parent is a reply itself, add to parent's parent (flatten)
+                    if (c.replies) {
+                      for (const reply of c.replies) {
+                        if (reply.id === comment.parentCommentID) {
+                          // Add to same level as the reply
+                          c.replies.push(optimisticComment);
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                  return false;
+                };
+                addReplyToParent(draft.comments);
+              } else {
+                draft.comments.unshift(optimisticComment);
+                draft.total += 1;
+                draft.totalAll += 1;
+              }
+            }
+          )
+        );
+
+        // Update post's comment count in feed
+        const feedPatches: any[] = [];
+        const feedTypes = [
+          "recommended",
+          "following",
+          "trending",
+          "recent",
+        ] as const;
+        for (const feed_type of feedTypes) {
+          try {
+            const patch = dispatch(
+              feedApi.util.updateQueryData(
+                "getFeed",
+                { page: 1, limit: 10, feed_type },
+                (draft) => {
+                  const post = draft.posts.find((p) => p.id === postId);
+                  if (post) {
+                    post.commentsCount += 1;
+                  }
+                }
+              )
+            );
+            feedPatches.push(patch);
+          } catch {
+            // Skip if query doesn't exist
+          }
+        }
+
+        try {
+          const { data: newComment } = await queryFulfilled;
+          // Replace optimistic comment with real one
+          dispatch(
+            feedApi.util.updateQueryData(
+              "getPostComments",
+              { postId, page: 1, limit: 20 },
+              (draft) => {
+                const replaceInComments = (comments: Comment[]): boolean => {
+                  for (let i = 0; i < comments.length; i++) {
+                    const comment = comments[i];
+                    if (!comment) continue;
+                    if (comment.id === tempId) {
+                      comments[i] = {
+                        ...newComment,
+                        isPending: false,
+                        replies: comment.replies,
+                      };
+                      return true;
+                    }
+                    if (comment.replies && replaceInComments(comment.replies)) {
+                      return true;
+                    }
+                  }
+                  return false;
+                };
+                replaceInComments(draft.comments);
+              }
+            )
+          );
+        } catch {
+          patchResult.undo();
+          feedPatches.forEach((p) => p.undo());
+        }
+      },
       invalidatesTags: (result, error, { postId }) => [
         { type: "Comments", id: postId },
-        { type: "Post", id: postId },
-        "Feed",
       ],
     }),
 
@@ -220,7 +397,6 @@ export const feedApi = baseApi.injectEndpoints({
         url: "/v1/feed/upload",
         method: "POST",
         body: formData,
-        // Don't set Content-Type header for FormData, let browser set it with boundary
         prepareHeaders: (headers: { delete: (arg0: string) => void }) => {
           headers.delete("Content-Type");
           return headers;
@@ -259,16 +435,49 @@ export const feedApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Save/Unsave post
+    // Save/Unsave post with optimistic update
     savePost: builder.mutation<{ message: string }, number>({
       query: (postId) => ({
         url: `/v1/feed/posts/${postId}/save`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, postId) => [
-        { type: "Post", id: postId },
-        "Feed",
-      ],
+      async onQueryStarted(postId, { dispatch, queryFulfilled }) {
+        const patchResults: any[] = [];
+        const feedTypes = [
+          "recommended",
+          "following",
+          "trending",
+          "recent",
+        ] as const;
+
+        for (const feed_type of feedTypes) {
+          for (let page = 1; page <= 10; page++) {
+            try {
+              const patchResult = dispatch(
+                feedApi.util.updateQueryData(
+                  "getFeed",
+                  { page, limit: 10, feed_type },
+                  (draft) => {
+                    const post = draft.posts.find((p) => p.id === postId);
+                    if (post) {
+                      post.isSaved = !post.isSaved;
+                    }
+                  }
+                )
+              );
+              patchResults.push(patchResult);
+            } catch {
+              // Skip
+            }
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResults.forEach((patch) => patch.undo());
+        }
+      },
     }),
 
     // Report post
@@ -283,7 +492,7 @@ export const feedApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // Like/Unlike comment
+    // Like/Unlike comment with optimistic update
     likeComment: builder.mutation<
       { message: string },
       { postId: number; commentId: number }
@@ -292,12 +501,42 @@ export const feedApi = baseApi.injectEndpoints({
         url: `/v1/feed/comments/${commentId}/like`,
         method: "POST",
       }),
-      invalidatesTags: (result, error, { postId }) => [
-        { type: "Comments", id: postId },
-      ],
+      async onQueryStarted(
+        { postId, commentId },
+        { dispatch, queryFulfilled }
+      ) {
+        const patchResult = dispatch(
+          feedApi.util.updateQueryData(
+            "getPostComments",
+            { postId, page: 1, limit: 20 },
+            (draft) => {
+              const updateLike = (comments: Comment[]): boolean => {
+                for (const c of comments) {
+                  if (c.id === commentId) {
+                    c.isLiked = !c.isLiked;
+                    c.commentLikeCount += c.isLiked ? 1 : -1;
+                    return true;
+                  }
+                  if (c.replies && updateLike(c.replies)) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+              updateLike(draft.comments);
+            }
+          )
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

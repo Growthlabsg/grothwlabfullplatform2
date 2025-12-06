@@ -35,7 +35,7 @@ export function SidebarQRCode({
 
   return (
     <div
-      className={`flex flex-col items-center py-3 px-2 gap-2 ${
+      className={`flex flex-col items-center py-1 px-2 gap-2 ${
         isCollapsed ? "scale-75" : ""
       }`}
     >

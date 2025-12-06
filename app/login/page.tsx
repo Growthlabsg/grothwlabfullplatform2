@@ -39,7 +39,7 @@ export default function LoginPage() {
           title: "Login successful!",
           description: "Welcome back!",
         });
-        window.location.href = "/dashboard";
+        window.location.href = "/feed";
       } else {
         setError(
           result.error ||

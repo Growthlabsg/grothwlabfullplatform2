@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Heart,
   MessageCircle,
@@ -53,6 +54,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
+import { MediaSlider } from "./media-slider";
 
 interface PostProps {
   post: PostType;
@@ -66,27 +68,55 @@ interface CommentItemProps {
   depth?: number;
 }
 
+// Comment skeleton loader
+function CommentSkeleton() {
+  return (
+    <div className="flex space-x-3 animate-pulse">
+      <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4 mt-1" />
+        </div>
+        <div className="flex gap-4">
+          <Skeleton className="h-3 w-12" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
   const [replyText, setReplyText] = useState("");
   const [showReply, setShowReply] = useState(false);
-  const [showReplies, setShowReplies] = useState(depth < 2); // Auto-expand first 2 levels
+  const [showReplies, setShowReplies] = useState(depth < 1); // Only 1 level nesting
   const [createComment, { isLoading: isCreatingReply }] =
     useCreateCommentMutation();
   const [likeComment, { isLoading: isLikingComment }] =
     useLikeCommentMutation();
 
-  // Use the replies from the comment object directly
   const replies = comment.replies || [];
 
   const handleReply = async () => {
     if (!replyText.trim()) return;
 
     try {
+      // For 1-level nesting: if replying to a reply, use the parent's ID
+      // This ensures all replies stay at the same level
+      const parentId = comment.parentCommentID
+        ? comment.parentCommentID
+        : comment.id;
+
       await createComment({
         postId,
         comment: {
           commentContent: replyText,
-          parentCommentID: comment.id,
+          parentCommentID: parentId,
         },
       }).unwrap();
       setReplyText("");
@@ -124,7 +154,12 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-1 min-w-0">
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-2">
+          <div
+            className={cn(
+              "bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-2",
+              comment.isPending && "opacity-60"
+            )}
+          >
             <div className="flex items-center space-x-2 flex-wrap">
               <span className="font-semibold text-sm">
                 {comment.author.firstName} {comment.author.lastName}
@@ -132,6 +167,11 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
               {comment.author.isVerified && (
                 <Badge variant="secondary" className="text-xs">
                   Verified
+                </Badge>
+              )}
+              {comment.isPending && (
+                <Badge variant="outline" className="text-xs">
+                  Posting...
                 </Badge>
               )}
               <span className="text-xs text-gray-500">
@@ -149,20 +189,22 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
                 comment.isLiked && "text-red-500"
               )}
               onClick={handleLikeComment}
-              disabled={isLikingComment}
+              disabled={isLikingComment || comment.isPending}
             >
               <Heart
                 className={cn("h-3 w-3", comment.isLiked && "fill-current")}
               />
               <span>{comment.commentLikeCount}</span>
             </button>
-            <button
-              className="hover:text-gray-700 dark:hover:text-gray-300"
-              onClick={() => setShowReply(!showReply)}
-            >
-              Reply
-            </button>
-            {replies.length > 0 && (
+            {!comment.isPending && (
+              <button
+                className="hover:text-gray-700 dark:hover:text-gray-300"
+                onClick={() => setShowReply(!showReply)}
+              >
+                Reply
+              </button>
+            )}
+            {replies.length > 0 && depth === 0 && (
               <button
                 className="hover:text-gray-700 dark:hover:text-gray-300 font-medium"
                 onClick={() => setShowReplies(!showReplies)}
@@ -186,7 +228,11 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
                   onClick={handleReply}
                   disabled={!replyText.trim() || isCreatingReply}
                 >
-                  <Send className="h-4 w-4" />
+                  {isCreatingReply ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -201,15 +247,15 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
         </div>
       </div>
 
-      {/* Nested Replies - recursive rendering */}
-      {showReplies && replies.length > 0 && (
+      {/* Nested Replies - only 1 level deep */}
+      {showReplies && replies.length > 0 && depth === 0 && (
         <div className="space-y-3">
           {replies.map((reply) => (
             <CommentItem
               key={reply.id}
               comment={reply}
               postId={postId}
-              depth={depth + 1}
+              depth={1}
             />
           ))}
         </div>
@@ -337,7 +383,20 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
   };
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", post.isPending && "opacity-90")}>
+      {/* Pending Post Indicator */}
+      {post.isPending && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2 border-b">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          <span>
+            {post.pendingAttachments && post.pendingAttachments > 0
+              ? `Uploading ${post.pendingAttachments} file${
+                  post.pendingAttachments > 1 ? "s" : ""
+                }...`
+              : "Publishing..."}
+          </span>
+        </div>
+      )}
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -446,34 +505,19 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
               </div>
             )}
 
-            {/* Attachments */}
-            {post.attachments.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {post.attachments.map((attachment) => (
-                  <div key={attachment.id} className="relative">
-                    {attachment.postAttachmentType === "image" ? (
-                      <img
-                        src={`http://localhost:8888${attachment.postAttachmentUrl}`}
-                        alt={attachment.postAttachmentTitle || "Post image"}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : attachment.postAttachmentType === "video" ? (
-                      <video
-                        src={`http://localhost:8888${attachment.postAttachmentUrl}`}
-                        controls
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-48 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                        <ExternalLink className="h-8 w-8 text-gray-400" />
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                          {attachment.postAttachmentTitle || "Document"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            {/* Attachments - Using MediaSlider */}
+            {(post.attachments.length > 0 || post.pendingAttachments) && (
+              <MediaSlider
+                items={post.attachments.map((attachment) => ({
+                  id: attachment.id,
+                  type: attachment.postAttachmentType,
+                  url: attachment.postAttachmentUrl,
+                  title: attachment.postAttachmentTitle,
+                  description: attachment.postAttachmentDescription,
+                }))}
+                pendingCount={post.pendingAttachments || 0}
+                className="mt-3"
+              />
             )}
           </div>
 
@@ -557,8 +601,10 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
 
               {/* Comments List */}
               {commentsLoading && commentsPage === 1 ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <CommentSkeleton key={i} />
+                  ))}
                 </div>
               ) : (
                 <div className="space-y-4">

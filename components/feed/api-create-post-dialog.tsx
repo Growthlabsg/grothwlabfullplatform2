@@ -33,16 +33,28 @@ import {
   Lock,
   Plus,
 } from "lucide-react";
-import { useCreatePostMutation, useUploadFileMutation } from "@/lib/redux";
-import { PostAttachment } from "@/lib/redux/feedApi";
+import {
+  useCreatePostMutation,
+  useUploadFileMutation,
+  useAddPostAttachmentMutation,
+} from "@/lib/redux";
+import { feedApi } from "@/lib/redux/feedApi";
+import { PostAttachment, Post } from "@/lib/redux/feedApi";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAppDispatch, useAppSelector } from "@/lib/redux";
 
 interface CreatePostDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+}
+
+interface PendingFile {
+  file: File;
+  preview?: string;
+  type: "image" | "video" | "document";
 }
 
 export function CreatePostDialog({
@@ -57,17 +69,16 @@ export function CreatePostDialog({
   >("PUBLIC");
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = useState("");
-  const [attachments, setAttachments] = useState<Omit<PostAttachment, "id">[]>(
-    []
-  );
-  const [isUploading, setIsUploading] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
 
   const [createPost, { isLoading: isCreatingPost }] = useCreatePostMutation();
   const [uploadFile] = useUploadFileMutation();
+  const [addPostAttachment] = useAddPostAttachmentMutation();
 
   const isDialogOpen = open !== undefined ? open : isOpen;
   const setDialogOpen = onOpenChange || setIsOpen;
@@ -93,49 +104,45 @@ export function CreatePostDialog({
     },
   ];
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    setIsUploading(true);
+    const newPendingFiles: PendingFile[] = [];
 
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file) continue;
-        const formData = new FormData();
-        formData.append("file", file);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
 
-        const result = await uploadFile(formData).unwrap();
+      let type: "image" | "video" | "document" = "document";
+      if (file.type.startsWith("image/")) type = "image";
+      else if (file.type.startsWith("video/")) type = "video";
 
-        setAttachments((prev) => [
-          ...prev,
-          {
-            postAttachmentType:
-              result.attachment_data.postAttachmentType.toLowerCase() as
-                | "image"
-                | "video"
-                | "document"
-                | "link",
-            postAttachmentUrl: result.attachment_data.postAttachmentUrl,
-            postAttachmentTitle: result.attachment_data.postAttachmentTitle,
-            postAttachmentDescription:
-              result.attachment_data.postAttachmentDescription,
-          },
-        ]);
+      const pendingFile: PendingFile = { file, type };
+
+      // Create preview for images
+      if (type === "image") {
+        pendingFile.preview = URL.createObjectURL(file);
       }
 
-      toast.success("Files uploaded successfully!");
-    } catch (error) {
-      toast.error("Failed to upload files");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      newPendingFiles.push(pendingFile);
     }
+
+    setPendingFiles((prev) => [...prev, ...newPendingFiles]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev) => {
+      const file = prev[index];
+      if (file?.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const addHashtag = () => {
@@ -150,10 +157,6 @@ export function CreatePostDialog({
     setHashtags(hashtags.filter((_, i) => i !== index));
   };
 
-  const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = async () => {
     if (!postContent.trim()) {
       toast.error("Post content is required");
@@ -161,31 +164,221 @@ export function CreatePostDialog({
     }
 
     setErrorMessage(null);
+    const tempId = `temp-${Date.now()}`;
+    const hasFiles = pendingFiles.length > 0;
+
+    // Create optimistic post data
+    const optimisticPost: Post = {
+      id: Date.now(), // Temporary ID
+      authorID: user?.id || 0,
+      author: {
+        id: user?.id || 0,
+        firstName: user?.firstName || "You",
+        lastName: user?.lastName || "",
+        emailAddress: user?.emailAddress || "",
+        avatarURL: user?.avatarURL,
+        role: user?.role || "user",
+        status: "active",
+        isEmailVerified: true,
+        isVerified: user?.isVerified || false,
+        subscriptionTier: user?.subscriptionTier || "free",
+        totalConnections: 0,
+        totalPosts: 0,
+        totalEngagement: 0,
+        headline: user?.headline || "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      postContent,
+      likesCount: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      viewsCount: 0,
+      postVisibility: postVisibility.toLowerCase() as
+        | "public"
+        | "private"
+        | "connections",
+      postHashTags: hashtags,
+      attachments: [],
+      createdAt: new Date().toISOString(),
+      isLiked: false,
+      isSaved: false,
+      isPending: true,
+      pendingAttachments: hasFiles ? pendingFiles.length : 0,
+    };
+
+    // Close dialog immediately for better UX
+    setDialogOpen(false);
+
+    // Add optimistic post to feed cache
+    const feedTypes = [
+      "recommended",
+      "following",
+      "trending",
+      "recent",
+    ] as const;
+    const patches: any[] = [];
+
+    for (const feed_type of feedTypes) {
+      try {
+        const patch = dispatch(
+          feedApi.util.updateQueryData(
+            "getFeed",
+            { page: 1, limit: 10, feed_type },
+            (draft) => {
+              draft.posts.unshift(optimisticPost);
+              draft.total += 1;
+            }
+          )
+        );
+        patches.push(patch);
+      } catch {
+        // Query doesn't exist, skip
+      }
+    }
 
     try {
-      await createPost({
+      // Step 1: Create the post first (without attachments)
+      const createdPost = await createPost({
         postContent,
         postVisibility: postVisibility.toLowerCase() as
           | "public"
           | "private"
           | "connections",
         postHashTags: hashtags,
-        attachments,
+        attachments: [], // We'll add attachments after
       }).unwrap();
+
+      // Update the optimistic post with real ID
+      for (const feed_type of feedTypes) {
+        try {
+          dispatch(
+            feedApi.util.updateQueryData(
+              "getFeed",
+              { page: 1, limit: 10, feed_type },
+              (draft) => {
+                const index = draft.posts.findIndex(
+                  (p) => p.id === optimisticPost.id
+                );
+                if (index !== -1) {
+                  draft.posts[index] = {
+                    ...createdPost,
+                    isPending: hasFiles,
+                    pendingAttachments: hasFiles ? pendingFiles.length : 0,
+                  };
+                }
+              }
+            )
+          );
+        } catch {
+          // Skip
+        }
+      }
+
+      // Step 2: Upload files one by one and add as attachments
+      if (hasFiles) {
+        let uploadedCount = 0;
+
+        for (const pendingFile of pendingFiles) {
+          try {
+            const formData = new FormData();
+            formData.append("file", pendingFile.file);
+
+            const uploadResult = await uploadFile(formData).unwrap();
+
+            // Add attachment to the post
+            await addPostAttachment({
+              postId: createdPost.id,
+              attachment: {
+                postAttachmentType:
+                  uploadResult.attachment_data.postAttachmentType.toLowerCase() as
+                    | "image"
+                    | "video"
+                    | "document"
+                    | "link",
+                postAttachmentUrl:
+                  uploadResult.attachment_data.postAttachmentUrl,
+                postAttachmentTitle:
+                  uploadResult.attachment_data.postAttachmentTitle,
+                postAttachmentDescription:
+                  uploadResult.attachment_data.postAttachmentDescription,
+              },
+            }).unwrap();
+
+            uploadedCount++;
+
+            // Update pending count in cache
+            for (const feed_type of feedTypes) {
+              try {
+                dispatch(
+                  feedApi.util.updateQueryData(
+                    "getFeed",
+                    { page: 1, limit: 10, feed_type },
+                    (draft) => {
+                      const post = draft.posts.find(
+                        (p) => p.id === createdPost.id
+                      );
+                      if (post) {
+                        post.pendingAttachments =
+                          pendingFiles.length - uploadedCount;
+                        if (post.pendingAttachments === 0) {
+                          post.isPending = false;
+                        }
+                      }
+                    }
+                  )
+                );
+              } catch {
+                // Skip
+              }
+            }
+          } catch (error) {
+            console.error("Failed to upload file:", error);
+            toast.error(`Failed to upload ${pendingFile.file.name}`);
+          }
+        }
+      }
+
+      // Mark post as complete
+      for (const feed_type of feedTypes) {
+        try {
+          dispatch(
+            feedApi.util.updateQueryData(
+              "getFeed",
+              { page: 1, limit: 10, feed_type },
+              (draft) => {
+                const post = draft.posts.find((p) => p.id === createdPost.id);
+                if (post) {
+                  post.isPending = false;
+                  post.pendingAttachments = 0;
+                }
+              }
+            )
+          );
+        } catch {
+          // Skip
+        }
+      }
 
       // Reset form
       setPostContent("");
       setHashtags([]);
       setHashtagInput("");
-      setAttachments([]);
+      setPendingFiles([]);
       setPostVisibility("PUBLIC");
-      setDialogOpen(false);
 
       toast.success("Post created successfully!");
     } catch (error: any) {
+      // Revert optimistic update
+      patches.forEach((patch) => patch.undo());
+
       const message =
         error?.data?.detail || error?.message || "Failed to create post";
       setErrorMessage(message);
+      toast.error(message);
+
+      // Reopen dialog on error
+      setDialogOpen(true);
     }
   };
 
@@ -215,17 +408,7 @@ export function CreatePostDialog({
     <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Upload Overlay */}
-        {isUploading && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center space-y-3">
-              <Upload className="h-10 w-10 animate-pulse text-primary" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Uploading files...
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Upload Overlay - removed, we use optimistic updates now */}
 
         <DialogHeader>
           <DialogTitle>Create a post</DialogTitle>
@@ -355,41 +538,38 @@ export function CreatePostDialog({
             )}
           </div>
 
-          {/* Attachments */}
-          {attachments.length > 0 && (
+          {/* Selected Files Preview */}
+          {pendingFiles.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
-              {attachments.map((attachment, index) => (
+              {pendingFiles.map((pendingFile, index) => (
                 <Card key={index} className="relative">
                   <Button
                     variant="ghost"
                     size="sm"
                     className="absolute top-2 right-2 z-10 h-6 w-6 p-0 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                    onClick={() => removeAttachment(index)}
+                    onClick={() => removePendingFile(index)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                   <CardContent className="p-3">
-                    {attachment.postAttachmentType === "image" ? (
+                    {pendingFile.type === "image" && pendingFile.preview ? (
                       <img
-                        src={`http://localhost:8888${attachment.postAttachmentUrl}`}
-                        alt={attachment.postAttachmentTitle || "Uploaded image"}
+                        src={pendingFile.preview}
+                        alt="Preview"
                         className="w-full h-32 object-cover rounded"
                       />
-                    ) : attachment.postAttachmentType === "video" ? (
-                      <video
-                        src={`http://localhost:8888${attachment.postAttachmentUrl}`}
-                        className="w-full h-32 object-cover rounded"
-                      />
+                    ) : pendingFile.type === "video" ? (
+                      <div className="flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded">
+                        <Video className="h-8 w-8 text-gray-400" />
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-800 rounded">
                         <FileText className="h-8 w-8 text-gray-400" />
                       </div>
                     )}
-                    {attachment.postAttachmentTitle && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 truncate">
-                        {attachment.postAttachmentTitle}
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 truncate">
+                      {pendingFile.file.name}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -417,7 +597,7 @@ export function CreatePostDialog({
                   type="file"
                   multiple
                   accept="image/*,video/*,.pdf,.doc,.docx"
-                  onChange={handleFileUpload}
+                  onChange={handleFileSelect}
                   className="hidden"
                 />
                 <Button
@@ -425,7 +605,7 @@ export function CreatePostDialog({
                   variant="ghost"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || attachments.length >= 10}
+                  disabled={pendingFiles.length >= 10}
                   className="flex items-center space-x-2"
                 >
                   <ImageIcon className="h-4 w-4" />
@@ -439,7 +619,7 @@ export function CreatePostDialog({
                     fileInputRef.current?.setAttribute("accept", "video/*");
                     fileInputRef.current?.click();
                   }}
-                  disabled={isUploading || attachments.length >= 10}
+                  disabled={pendingFiles.length >= 10}
                   className="flex items-center space-x-2"
                 >
                   <Video className="h-4 w-4" />
@@ -456,7 +636,7 @@ export function CreatePostDialog({
                     );
                     fileInputRef.current?.click();
                   }}
-                  disabled={isUploading || attachments.length >= 10}
+                  disabled={pendingFiles.length >= 10}
                   className="flex items-center space-x-2"
                 >
                   <FileText className="h-4 w-4" />
@@ -474,9 +654,7 @@ export function CreatePostDialog({
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={
-                    !postContent.trim() || isCreatingPost || isUploading
-                  }
+                  disabled={!postContent.trim() || isCreatingPost}
                   className="bg-primary hover:bg-primary/90"
                 >
                   {isCreatingPost ? (
