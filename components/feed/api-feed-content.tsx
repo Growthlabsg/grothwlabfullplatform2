@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,15 +28,22 @@ import { useGetFeedQuery } from "@/lib/redux";
 import { Post } from "./api-post";
 import { CreatePostDialog } from "./api-create-post-dialog";
 import { useAuth } from "@/contexts/auth-context";
+import { usePageContext } from "@/contexts/page-context";
 import { toast } from "sonner";
 
 type FeedType = "recommended" | "following" | "trending" | "recent";
 
 export function ApiFeedContent() {
+  const router = useRouter();
   const { user, loading } = useAuth();
+  const { activePageId, isOperatingAsPage } = usePageContext();
   const [feedType, setFeedType] = useState<FeedType>("recommended");
   const [page, setPage] = useState(1);
   const [allPosts, setAllPosts] = useState<any[]>([]);
+
+  // Use activePageId directly - it's set when user switches context
+  // isOperatingAsPage requires activePage to be loaded, which may have timing issues
+  const effectivePageId = activePageId || null;
 
   const {
     data: feedData,
@@ -48,9 +56,11 @@ export function ApiFeedContent() {
       page,
       limit: 10,
       feed_type: feedType,
+      pageId: effectivePageId, // Use activePageId directly
     },
     {
       skip: !user, // Skip the query if user is not authenticated
+      refetchOnMountOrArgChange: true, // Refetch when arguments change (including pageId)
     }
   );
 
@@ -67,16 +77,21 @@ export function ApiFeedContent() {
     }
   }, [feedData, page]);
 
-  // Reset page when feed type changes
+  // Reset page when feed type or page context changes
   useEffect(() => {
     setPage(1);
     setAllPosts([]);
-  }, [feedType]);
+    // Note: refetchOnMountOrArgChange: true handles refetching when pageId changes
+    // We don't need to manually call refetch() here
+  }, [feedType, activePageId]);
 
   const handleRefresh = () => {
     setPage(1);
     setAllPosts([]);
-    refetch();
+    // Only call refetch if query has been started (user is authenticated)
+    if (user) {
+      refetch();
+    }
     toast.success("Feed refreshed!");
   };
 
@@ -137,9 +152,7 @@ export function ApiFeedContent() {
               You need to be logged in to view the feed
             </p>
           </div>
-          <Button onClick={() => (window.location.href = "/login")}>
-            Log In
-          </Button>
+          <Button onClick={() => router.push("/login")}>Log In</Button>
         </CardContent>
       </Card>
     );
@@ -168,7 +181,7 @@ export function ApiFeedContent() {
   return (
     <div className="space-y-6">
       {/* Feed Header */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold">Your Feed</CardTitle>
@@ -185,7 +198,6 @@ export function ApiFeedContent() {
             </Button>
           </div>
 
-          {/* Feed Type Selector */}
           <div className="flex items-center space-x-4">
             <Select
               value={feedType}
@@ -233,7 +245,69 @@ export function ApiFeedContent() {
             )}
           </div>
         </CardHeader>
-      </Card>
+      </Card> */}
+
+      {/* <h6 className="font-bold">Your Feed</h6> */}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Select
+            value={feedType}
+            onValueChange={(value: FeedType) => setFeedType(value)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue>
+                <div className="flex items-center space-x-2">
+                  {(() => {
+                    const option = feedOptions.find(
+                      (opt) => opt.value === feedType
+                    );
+                    const Icon = option?.icon || Sparkles;
+                    return (
+                      <>
+                        <Icon className="h-4 w-4" />
+                        <span>{option?.label}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {feedOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center space-x-3">
+                    <option.icon className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">{option.label}</div>
+                      <div className="text-xs text-gray-500">
+                        {option.description}
+                      </div>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* {feedData && (
+            <Badge variant="outline" className="text-xs">
+              {feedData.total} total posts
+            </Badge>
+          )} */}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isFetching}
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
+      </div>
 
       {/* Create Post */}
       <Card>
@@ -243,7 +317,8 @@ export function ApiFeedContent() {
       </Card>
 
       {/* Feed Content */}
-      {isLoading && page === 1 ? (
+      {/* Show skeleton loaders when initially loading or fetching with no posts */}
+      {(isLoading || (isFetching && allPosts.length === 0)) && page === 1 ? (
         <div className="space-y-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
@@ -269,7 +344,7 @@ export function ApiFeedContent() {
         </div>
       ) : (
         <div className="space-y-6">
-          {allPosts.length === 0 && !isLoading ? (
+          {allPosts.length === 0 && !isLoading && !isFetching && !loading ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <div className="text-gray-500 mb-4">

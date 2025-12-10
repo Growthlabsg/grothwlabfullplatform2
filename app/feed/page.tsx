@@ -7,6 +7,7 @@ import { FeedRightSidebar } from "@/components/feed/linkedin-style/right-sidebar
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Bell, Plus, Home, Search, Users } from "lucide-react";
+import { ContextSwitcher } from "@/components/feed/context-switcher";
 
 // Metadata is handled by the layout for client components
 
@@ -57,7 +58,8 @@ export default function FeedPage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Button
+              {/* <ContextSwitcher /> */}
+              {/* <Button
                 variant="outline"
                 size="sm"
                 className="gap-2"
@@ -75,7 +77,7 @@ export default function FeedPage() {
                 <Badge className="ml-1 bg-red-500 text-white text-xs h-5 w-5 rounded-full flex items-center justify-center">
                   3
                 </Badge>
-              </Button>
+              </Button> */}
               <Button
                 className="bg-gradient-to-r from-[#0F7377] to-[#00A884] hover:from-[#0F7377]/90 hover:to-[#00A884]/90 text-white gap-2"
                 onClick={handleCreatePost}
@@ -110,6 +112,7 @@ export default function FeedPage() {
             </div>
 
             <div className="flex items-center space-x-2 flex-shrink-0">
+              <ContextSwitcher />
               <Button
                 variant="ghost"
                 size="sm"

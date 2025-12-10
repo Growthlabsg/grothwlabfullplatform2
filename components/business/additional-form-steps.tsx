@@ -1,21 +1,41 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Plus, X } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Plus, X } from "lucide-react";
 
 // Market Analysis Step
 export function MarketAnalysisStep({ form }: { form: any }) {
+  const [techInput, setTechInput] = useState("");
+  const [competitorInput, setCompetitorInput] = useState("");
+  const [patentInput, setPatentInput] = useState("");
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Market Analysis</h3>
-        <p className="text-sm text-gray-600 mb-6">Define your market opportunity and competitive landscape.</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Define your market opportunity and competitive landscape.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -26,11 +46,15 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>TAM (Total Addressable Market)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="50000000000" 
+                <Input
+                  type="number"
+                  placeholder="50000000000"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormDescription>In USD</FormDescription>
@@ -45,11 +69,15 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>SAM (Serviceable Addressable Market)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="5000000000" 
+                <Input
+                  type="number"
+                  placeholder="5000000000"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormDescription>In USD</FormDescription>
@@ -64,11 +92,15 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>SOM (Serviceable Obtainable Market)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="500000000" 
+                <Input
+                  type="number"
+                  placeholder="500000000"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormDescription>In USD</FormDescription>
@@ -86,10 +118,10 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Target Market</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Describe your target market in detail..."
                   className="min-h-[100px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -104,10 +136,10 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Competitive Advantage</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="What makes you different from competitors?"
                   className="min-h-[100px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -128,19 +160,34 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a technology..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={techInput}
+                      onChange={(e) => setTechInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (techInput.trim()) {
+                            const currentTech = field.value || [];
+                            form.setValue("technologyStack", [
+                              ...currentTech,
+                              techInput.trim(),
+                            ]);
+                            setTechInput("");
+                          }
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentTech = field.value || []
-                          form.setValue("technologyStack", [...currentTech, value.trim()])
-                          form.setValue("newValue", "")
+                        if (techInput.trim()) {
+                          const currentTech = field.value || [];
+                          form.setValue("technologyStack", [
+                            ...currentTech,
+                            techInput.trim(),
+                          ]);
+                          setTechInput("");
                         }
                       }}
                     >
@@ -149,13 +196,22 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(field.value || []).map((tech: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {tech}
                         <X
                           className="h-3 w-3 cursor-pointer"
                           onClick={() => {
-                            const currentTech = field.value || []
-                            form.setValue("technologyStack", currentTech.filter((_: any, i: number) => i !== index))
+                            const currentTech = field.value || [];
+                            form.setValue(
+                              "technologyStack",
+                              currentTech.filter(
+                                (_: any, i: number) => i !== index
+                              )
+                            );
                           }}
                         />
                       </Badge>
@@ -181,19 +237,34 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a competitor..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={competitorInput}
+                      onChange={(e) => setCompetitorInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (competitorInput.trim()) {
+                            const currentCompetitors = field.value || [];
+                            form.setValue("market.competition", [
+                              ...currentCompetitors,
+                              competitorInput.trim(),
+                            ]);
+                            setCompetitorInput("");
+                          }
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentCompetitors = field.value || []
-                          form.setValue("market.competition", [...currentCompetitors, value.trim()])
-                          form.setValue("newValue", "")
+                        if (competitorInput.trim()) {
+                          const currentCompetitors = field.value || [];
+                          form.setValue("market.competition", [
+                            ...currentCompetitors,
+                            competitorInput.trim(),
+                          ]);
+                          setCompetitorInput("");
                         }
                       }}
                     >
@@ -201,18 +272,29 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(field.value || []).map((competitor: string, index: number) => (
-                      <Badge key={index} variant="outline" className="flex items-center gap-1">
-                        {competitor}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => {
-                            const currentCompetitors = field.value || []
-                            form.setValue("market.competition", currentCompetitors.filter((_: any, i: number) => i !== index))
-                          }}
-                        />
-                      </Badge>
-                    ))}
+                    {(field.value || []).map(
+                      (competitor: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
+                          {competitor}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              const currentCompetitors = field.value || [];
+                              form.setValue(
+                                "market.competition",
+                                currentCompetitors.filter(
+                                  (_: any, i: number) => i !== index
+                                )
+                              );
+                            }}
+                          />
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               </FormControl>
@@ -230,11 +312,15 @@ export function MarketAnalysisStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Market Growth Rate (%)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="15" 
+                <Input
+                  type="number"
+                  placeholder="15"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormDescription>Annual market growth percentage</FormDescription>
@@ -254,19 +340,34 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a patent..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={patentInput}
+                      onChange={(e) => setPatentInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (patentInput.trim()) {
+                            const currentPatents = field.value || [];
+                            form.setValue("patents", [
+                              ...currentPatents,
+                              patentInput.trim(),
+                            ]);
+                            setPatentInput("");
+                          }
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentPatents = field.value || []
-                          form.setValue("patents", [...currentPatents, value.trim()])
-                          form.setValue("newValue", "")
+                        if (patentInput.trim()) {
+                          const currentPatents = field.value || [];
+                          form.setValue("patents", [
+                            ...currentPatents,
+                            patentInput.trim(),
+                          ]);
+                          setPatentInput("");
                         }
                       }}
                     >
@@ -274,18 +375,29 @@ export function MarketAnalysisStep({ form }: { form: any }) {
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(field.value || []).map((patent: string, index: number) => (
-                      <Badge key={index} variant="outline" className="flex items-center gap-1">
-                        {patent}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => {
-                            const currentPatents = field.value || []
-                            form.setValue("patents", currentPatents.filter((_: any, i: number) => i !== index))
-                          }}
-                        />
-                      </Badge>
-                    ))}
+                    {(field.value || []).map(
+                      (patent: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
+                          {patent}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              const currentPatents = field.value || [];
+                              form.setValue(
+                                "patents",
+                                currentPatents.filter(
+                                  (_: any, i: number) => i !== index
+                                )
+                              );
+                            }}
+                          />
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               </FormControl>
@@ -295,16 +407,21 @@ export function MarketAnalysisStep({ form }: { form: any }) {
         />
       </div>
     </div>
-  )
+  );
 }
 
 // Company Culture Step
 export function CompanyCultureStep({ form }: { form: any }) {
+  const [valueInput, setValueInput] = useState("");
+  const [perkInput, setPerkInput] = useState("");
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Company Culture</h3>
-        <p className="text-sm text-gray-600 mb-6">Define your company culture, values, and team characteristics.</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Define your company culture, values, and team characteristics.
+        </p>
       </div>
 
       <div>
@@ -319,19 +436,34 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a core value..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={valueInput}
+                      onChange={(e) => setValueInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (valueInput.trim()) {
+                            const currentValues = field.value || [];
+                            form.setValue("culture.values", [
+                              ...currentValues,
+                              valueInput.trim(),
+                            ]);
+                            setValueInput("");
+                          }
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentValues = field.value || []
-                          form.setValue("culture.values", [...currentValues, value.trim()])
-                          form.setValue("newValue", "")
+                        if (valueInput.trim()) {
+                          const currentValues = field.value || [];
+                          form.setValue("culture.values", [
+                            ...currentValues,
+                            valueInput.trim(),
+                          ]);
+                          setValueInput("");
                         }
                       }}
                     >
@@ -340,13 +472,22 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(field.value || []).map((value: string, index: number) => (
-                      <Badge key={index} variant="outline" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
                         {value}
                         <X
                           className="h-3 w-3 cursor-pointer"
                           onClick={() => {
-                            const currentValues = field.value || []
-                            form.setValue("culture.values", currentValues.filter((_: any, i: number) => i !== index))
+                            const currentValues = field.value || [];
+                            form.setValue(
+                              "culture.values",
+                              currentValues.filter(
+                                (_: any, i: number) => i !== index
+                              )
+                            );
                           }}
                         />
                       </Badge>
@@ -372,19 +513,34 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a perk..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={perkInput}
+                      onChange={(e) => setPerkInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (perkInput.trim()) {
+                            const currentPerks = field.value || [];
+                            form.setValue("culture.perks", [
+                              ...currentPerks,
+                              perkInput.trim(),
+                            ]);
+                            setPerkInput("");
+                          }
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentPerks = field.value || []
-                          form.setValue("culture.perks", [...currentPerks, value.trim()])
-                          form.setValue("newValue", "")
+                        if (perkInput.trim()) {
+                          const currentPerks = field.value || [];
+                          form.setValue("culture.perks", [
+                            ...currentPerks,
+                            perkInput.trim(),
+                          ]);
+                          setPerkInput("");
                         }
                       }}
                     >
@@ -393,13 +549,22 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(field.value || []).map((perk: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {perk}
                         <X
                           className="h-3 w-3 cursor-pointer"
                           onClick={() => {
-                            const currentPerks = field.value || []
-                            form.setValue("culture.perks", currentPerks.filter((_: any, i: number) => i !== index))
+                            const currentPerks = field.value || [];
+                            form.setValue(
+                              "culture.perks",
+                              currentPerks.filter(
+                                (_: any, i: number) => i !== index
+                              )
+                            );
                           }}
                         />
                       </Badge>
@@ -421,11 +586,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Team Size</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="33" 
+                <Input
+                  type="number"
+                  placeholder="33"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormMessage />
@@ -440,11 +609,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Average Team Age</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="28" 
+                <Input
+                  type="number"
+                  placeholder="28"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 />
               </FormControl>
               <FormMessage />
@@ -457,7 +630,9 @@ export function CompanyCultureStep({ form }: { form: any }) {
         <h4 className="font-medium mb-3">Team Diversity</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h5 className="text-sm font-medium mb-2">Gender Distribution (%)</h5>
+            <h5 className="text-sm font-medium mb-2">
+              Gender Distribution (%)
+            </h5>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -466,11 +641,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Male</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="60" 
+                      <Input
+                        type="number"
+                        placeholder="60"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -484,11 +663,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Female</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="40" 
+                      <Input
+                        type="number"
+                        placeholder="40"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -499,7 +682,9 @@ export function CompanyCultureStep({ form }: { form: any }) {
           </div>
 
           <div>
-            <h5 className="text-sm font-medium mb-2">Ethnicity Distribution (%)</h5>
+            <h5 className="text-sm font-medium mb-2">
+              Ethnicity Distribution (%)
+            </h5>
             <div className="grid grid-cols-3 gap-2">
               <FormField
                 control={form.control}
@@ -508,11 +693,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Asian</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="70" 
+                      <Input
+                        type="number"
+                        placeholder="70"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -526,11 +715,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Caucasian</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="20" 
+                      <Input
+                        type="number"
+                        placeholder="20"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -544,11 +737,15 @@ export function CompanyCultureStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Other</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="10" 
+                      <Input
+                        type="number"
+                        placeholder="10"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -560,13 +757,13 @@ export function CompanyCultureStep({ form }: { form: any }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Office Locations Step
 export function OfficeLocationsStep({ form }: { form: any }) {
   const addOfficeLocation = () => {
-    const currentLocations = form.getValues("officeLocations") || []
+    const currentLocations = form.getValues("officeLocations") || [];
     form.setValue("officeLocations", [
       ...currentLocations,
       {
@@ -574,20 +771,25 @@ export function OfficeLocationsStep({ form }: { form: any }) {
         address: "",
         type: "Headquarters",
         employees: 0,
-      }
-    ])
-  }
+      },
+    ]);
+  };
 
   const removeOfficeLocation = (index: number) => {
-    const currentLocations = form.getValues("officeLocations") || []
-    form.setValue("officeLocations", currentLocations.filter((_: any, i: number) => i !== index))
-  }
+    const currentLocations = form.getValues("officeLocations") || [];
+    form.setValue(
+      "officeLocations",
+      currentLocations.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Office Locations</h3>
-        <p className="text-sm text-gray-600 mb-6">Add your physical office locations and remote work policies.</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Add your physical office locations and remote work policies.
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -604,7 +806,7 @@ export function OfficeLocationsStep({ form }: { form: any }) {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -633,10 +835,18 @@ export function OfficeLocationsStep({ form }: { form: any }) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Headquarters">Headquarters</SelectItem>
-                        <SelectItem value="Sales Office">Sales Office</SelectItem>
-                        <SelectItem value="Development Center">Development Center</SelectItem>
-                        <SelectItem value="Branch Office">Branch Office</SelectItem>
+                        <SelectItem value="Headquarters">
+                          Headquarters
+                        </SelectItem>
+                        <SelectItem value="Sales Office">
+                          Sales Office
+                        </SelectItem>
+                        <SelectItem value="Development Center">
+                          Development Center
+                        </SelectItem>
+                        <SelectItem value="Branch Office">
+                          Branch Office
+                        </SelectItem>
                         <SelectItem value="Remote Hub">Remote Hub</SelectItem>
                       </SelectContent>
                     </Select>
@@ -652,7 +862,10 @@ export function OfficeLocationsStep({ form }: { form: any }) {
                   <FormItem className="md:col-span-2">
                     <FormLabel>Full Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="1 Marina Bay Sands, Singapore 018956" {...field} />
+                      <Input
+                        placeholder="1 Marina Bay Sands, Singapore 018956"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -666,11 +879,15 @@ export function OfficeLocationsStep({ form }: { form: any }) {
                   <FormItem>
                     <FormLabel>Number of Employees</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="25" 
+                      <Input
+                        type="number"
+                        placeholder="25"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -692,5 +909,5 @@ export function OfficeLocationsStep({ form }: { form: any }) {
         </Button>
       </div>
     </div>
-  )
+  );
 }

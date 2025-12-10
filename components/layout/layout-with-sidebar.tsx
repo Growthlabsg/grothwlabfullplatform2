@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { GrowthLabSidebar } from "@/components/sidebar/growthlab-sidebar";
 import { Header } from "@/components/layout/header";
 import { CommunicationHubButton } from "@/components/communication/communication-hub-button";
@@ -13,10 +14,25 @@ interface LayoutWithSidebarProps {
   children: React.ReactNode;
 }
 
+// Routes that should be displayed without header, footer, sidebar (public pages)
+const PUBLIC_STANDALONE_ROUTES = ["/card"];
+
 export function LayoutWithSidebar({ children }: LayoutWithSidebarProps) {
+  const pathname = usePathname();
   const { isMobile } = useMobile();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Check if this is a public standalone page (no header/footer/sidebar)
+  const isPublicStandalonePage = PUBLIC_STANDALONE_ROUTES.some((route) =>
+    pathname?.startsWith(route)
+  );
+
+  // For public standalone pages, render children without layout wrapper
+  if (isPublicStandalonePage) {
+    return <>{children}</>;
+  }
+
   // Render immediately; avoid returning null on server to prevent Next.js from treating the page as not-found
 
   return (

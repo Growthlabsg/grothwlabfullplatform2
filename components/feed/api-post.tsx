@@ -22,7 +22,9 @@ import {
   Copy,
   ExternalLink,
   CornerDownRight,
+  Building2,
 } from "lucide-react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +55,7 @@ import { Post as PostType, Comment } from "@/lib/redux/feedApi";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
+import { usePageContext } from "@/contexts/page-context";
 import { cn } from "@/lib/utils";
 import { MediaSlider } from "./media-slider";
 
@@ -95,12 +98,21 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
   const [replyText, setReplyText] = useState("");
   const [showReply, setShowReply] = useState(false);
   const [showReplies, setShowReplies] = useState(depth < 1); // Only 1 level nesting
+  const { activePage, isOperatingAsPage, activePageId } = usePageContext();
   const [createComment, { isLoading: isCreatingReply }] =
     useCreateCommentMutation();
   const [likeComment, { isLoading: isLikingComment }] =
     useLikeCommentMutation();
 
   const replies = comment.replies || [];
+
+  // Get display info based on context for reply
+  const replyDisplayAvatar = isOperatingAsPage
+    ? activePage?.avatarURL
+    : undefined;
+  const replyDisplayName = isOperatingAsPage
+    ? activePage?.businessTitle
+    : undefined;
 
   const handleReply = async () => {
     if (!replyText.trim()) return;
@@ -117,6 +129,20 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
         comment: {
           commentContent: replyText,
           parentCommentID: parentId,
+          // Include page context if operating as page
+          authorPageID:
+            isOperatingAsPage && activePageId ? activePageId : undefined,
+          // For optimistic updates
+          _pageInfo:
+            isOperatingAsPage && activePage
+              ? {
+                  id: activePage.id,
+                  businessTitle: activePage.businessTitle,
+                  email: activePage.email || "",
+                  avatarURL: activePage.avatarURL,
+                  verificationStatus: activePage.verificationStatus,
+                }
+              : undefined,
         },
       }).unwrap();
       setReplyText("");
@@ -129,11 +155,27 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
 
   const handleLikeComment = async () => {
     try {
-      await likeComment({ postId, commentId: comment.id }).unwrap();
+      await likeComment({
+        postId,
+        commentId: comment.id,
+        // Include pageID if operating as a business page
+        pageID: isOperatingAsPage && activePageId ? activePageId : undefined,
+      }).unwrap();
     } catch (error) {
       toast.error("Failed to like comment");
     }
   };
+
+  // Get comment author display info (supports page authors)
+  const commentAuthorAvatar =
+    comment.authorPageID && comment.authorPage
+      ? comment.authorPage.avatarURL
+      : comment.author.avatarURL;
+  const commentAuthorName =
+    comment.authorPageID && comment.authorPage
+      ? comment.authorPage.businessTitle
+      : `${comment.author.firstName} ${comment.author.lastName}`;
+  const isPageComment = !!comment.authorPageID;
 
   return (
     <div
@@ -146,11 +188,22 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
         {depth > 0 && (
           <CornerDownRight className="h-4 w-4 text-gray-400 mt-2 flex-shrink-0" />
         )}
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage src={comment.author.avatarURL} />
+        <Avatar
+          className={cn(
+            "h-8 w-8 flex-shrink-0",
+            isPageComment && "border-2 border-blue-500"
+          )}
+        >
+          <AvatarImage src={commentAuthorAvatar} />
           <AvatarFallback>
-            {comment.author.firstName[0]}
-            {comment.author.lastName[0]}
+            {isPageComment ? (
+              <Building2 className="h-4 w-4" />
+            ) : (
+              <>
+                {comment.author.firstName[0]}
+                {comment.author.lastName[0]}
+              </>
+            )}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-1 min-w-0">
@@ -161,10 +214,26 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
             )}
           >
             <div className="flex items-center space-x-2 flex-wrap">
-              <span className="font-semibold text-sm">
-                {comment.author.firstName} {comment.author.lastName}
-              </span>
-              {comment.author.isVerified && (
+              <Link
+                href={
+                  isPageComment
+                    ? `/business/${comment.authorPageID}`
+                    : `/profile/${comment.commentAuthorID}`
+                }
+                className="font-semibold text-sm hover:underline hover:text-primary"
+              >
+                {commentAuthorName}
+              </Link>
+              {isPageComment && (
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-blue-100 text-blue-700"
+                >
+                  <Building2 className="h-3 w-3 mr-1" />
+                  Page
+                </Badge>
+              )}
+              {!isPageComment && comment.author.isVerified && (
                 <Badge variant="secondary" className="text-xs">
                   Verified
                 </Badge>
@@ -215,32 +284,46 @@ function CommentItem({ comment, postId, depth = 0 }: CommentItemProps) {
             )}
           </div>
           {showReply && (
-            <div className="flex space-x-2 mt-2">
-              <Textarea
-                placeholder="Write a reply..."
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                className="min-h-[80px] resize-none"
-              />
-              <div className="flex flex-col space-y-2">
-                <Button
-                  size="sm"
-                  onClick={handleReply}
-                  disabled={!replyText.trim() || isCreatingReply}
-                >
-                  {isCreatingReply ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowReply(false)}
-                >
-                  Cancel
-                </Button>
+            <div className="mt-2 space-y-2">
+              {isOperatingAsPage && (
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Replying as{" "}
+                  <span className="font-medium">
+                    {activePage?.businessTitle}
+                  </span>
+                </div>
+              )}
+              <div className="flex space-x-2">
+                <Textarea
+                  placeholder="Write a reply..."
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  className="min-h-[80px] resize-none"
+                />
+                <div className="flex flex-col space-y-2">
+                  <Button
+                    size="sm"
+                    onClick={handleReply}
+                    disabled={!replyText.trim() || isCreatingReply}
+                  >
+                    {isCreatingReply ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-1" />
+                        Reply
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowReply(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -273,6 +356,7 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
   const [reportReason, setReportReason] = useState("");
   const COMMENTS_PER_PAGE = 10;
   const { user } = useAuth();
+  const { activePageId, activePage, isOperatingAsPage } = usePageContext();
 
   const [likePost, { isLoading: isLiking }] = useLikePostMutation();
   const [createComment, { isLoading: isCommenting }] =
@@ -304,7 +388,11 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
 
   const handleLike = async () => {
     try {
-      await likePost(post.id).unwrap();
+      await likePost({
+        postId: post.id,
+        // Include pageID if operating as a business page
+        pageID: isOperatingAsPage && activePageId ? activePageId : undefined,
+      }).unwrap();
     } catch (error) {
       toast.error("Failed to like post");
     }
@@ -318,6 +406,17 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
         postId: post.id,
         comment: {
           commentContent: commentText,
+          authorPageID: activePageId || undefined,
+          // For optimistic updates
+          _pageInfo: activePage
+            ? {
+                id: activePage.id,
+                businessTitle: activePage.businessTitle,
+                email: activePage.email || "",
+                avatarURL: activePage.avatarURL,
+                verificationStatus: activePage.verificationStatus,
+              }
+            : undefined,
         },
       }).unwrap();
       setCommentText("");
@@ -400,34 +499,89 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={post.author.avatarURL} />
-              <AvatarFallback>
-                {post.author.firstName[0]}
-                {post.author.lastName[0]}
-              </AvatarFallback>
-            </Avatar>
+            {/* Avatar - show page avatar if post is by a page */}
+            <Link
+              href={
+                post.authorPageID && post.authorPage
+                  ? `/business/${post.authorPageID}`
+                  : `/profile/${post.authorID}`
+              }
+            >
+              <Avatar
+                className={cn(
+                  "h-12 w-12",
+                  post.authorPageID && "border-2 border-blue-500"
+                )}
+              >
+                <AvatarImage
+                  src={
+                    post.authorPageID && post.authorPage
+                      ? post.authorPage.avatarURL
+                      : post.author.avatarURL
+                  }
+                />
+                <AvatarFallback>
+                  {post.authorPageID && post.authorPage ? (
+                    <Building2 className="h-6 w-6" />
+                  ) : (
+                    <>
+                      {post.author.firstName[0]}
+                      {post.author.lastName[0]}
+                    </>
+                  )}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
             <div>
               <div className="flex items-center space-x-2">
-                <h4 className="font-semibold">
-                  {post.author.firstName} {post.author.lastName}
-                </h4>
-                {post.author.isVerified && (
+                <Link
+                  href={
+                    post.authorPageID && post.authorPage
+                      ? `/business/${post.authorPageID}`
+                      : `/profile/${post.authorID}`
+                  }
+                  className="hover:underline"
+                >
+                  <h4 className="font-semibold">
+                    {post.authorPageID && post.authorPage
+                      ? post.authorPage.businessTitle
+                      : `${post.author.firstName} ${post.author.lastName}`}
+                  </h4>
+                </Link>
+                {post.authorPageID && post.authorPage && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-blue-100 text-blue-700"
+                  >
+                    <Building2 className="h-3 w-3 mr-1" />
+                    Page
+                  </Badge>
+                )}
+                {!post.authorPageID && post.author.isVerified && (
                   <Badge variant="secondary" className="text-xs">
                     Verified
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {post.author.headline}
-              </p>
+              {post.authorPageID && post.authorPage ? (
+                // For page posts, show the user as "posted by"
+                <Link
+                  href={`/profile/${post.authorID}`}
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1"
+                >
+                  Posted by {post.author.firstName} {post.author.lastName}
+                </Link>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {post.author.headline}
+                </p>
+              )}
               <p className="text-xs text-gray-500">
                 {formatDistanceToNow(new Date(post.createdAt), {
                   addSuffix: true,
                 })}{" "}
-                ·
-                <Eye className="inline h-3 w-3 mx-1" />
-                {post.viewsCount} views
+                ·{/* <Eye className="inline h-3 w-3 mx-1" /> */}
+                {/* {pos0.viewsCount} views */}
               </p>
             </div>
           </div>
@@ -506,9 +660,10 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
             )}
 
             {/* Attachments - Using MediaSlider */}
-            {(post.attachments.length > 0 || post.pendingAttachments) && (
+            {((post.attachments && post.attachments.length > 0) ||
+              post.pendingAttachments) && (
               <MediaSlider
-                items={post.attachments.map((attachment) => ({
+                items={(post.attachments || []).map((attachment) => ({
                   id: attachment.id,
                   type: attachment.postAttachmentType,
                   url: attachment.postAttachmentUrl,
@@ -525,7 +680,12 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
           <div className="flex items-center justify-between text-sm text-gray-500 py-2 border-y border-gray-200 dark:border-gray-800">
             <span>{post.likesCount} likes</span>
             <div className="flex space-x-4">
-              <span>{post.commentsCount} comments</span>
+              <button
+                onClick={() => setShowComments(true)}
+                className="hover:text-gray-700 dark:hover:text-gray-300 hover:underline"
+              >
+                {post.commentsCount} comments
+              </button>
               <span>{post.sharesCount} shares</span>
             </div>
           </div>
@@ -573,13 +733,29 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
               {/* Add Comment */}
               <div className="flex space-x-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatarURL} />
+                  <AvatarImage
+                    src={
+                      isOperatingAsPage
+                        ? activePage?.avatarURL
+                        : user?.avatarURL
+                    }
+                  />
                   <AvatarFallback>
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
+                    {isOperatingAsPage
+                      ? activePage?.businessTitle?.substring(0, 2).toUpperCase()
+                      : `${user?.firstName?.[0]}${user?.lastName?.[0]}`}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-2">
+                  {isOperatingAsPage && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      Commenting as{" "}
+                      <span className="font-medium">
+                        {activePage?.businessTitle}
+                      </span>
+                    </div>
+                  )}
                   <Textarea
                     placeholder="Write a comment..."
                     value={commentText}
@@ -593,7 +769,7 @@ export function Post({ post, onEdit, onDelete }: PostProps) {
                       disabled={!commentText.trim() || isCommenting}
                     >
                       <Send className="h-4 w-4 mr-2" />
-                      Post
+                      Comment
                     </Button>
                   </div>
                 </div>

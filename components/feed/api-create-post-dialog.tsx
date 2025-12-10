@@ -32,6 +32,7 @@ import {
   Users,
   Lock,
   Plus,
+  Building2,
 } from "lucide-react";
 import {
   useCreatePostMutation,
@@ -41,6 +42,7 @@ import {
 import { feedApi } from "@/lib/redux/feedApi";
 import { PostAttachment, Post } from "@/lib/redux/feedApi";
 import { useAuth } from "@/contexts/auth-context";
+import { usePageContext } from "@/contexts/page-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/lib/redux";
@@ -74,6 +76,7 @@ export function CreatePostDialog({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { activePage, isOperatingAsPage, activePageId } = usePageContext();
   const dispatch = useAppDispatch();
 
   const [createPost, { isLoading: isCreatingPost }] = useCreatePostMutation();
@@ -189,6 +192,18 @@ export function CreatePostDialog({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      // Add page context if operating as page
+      authorPageID:
+        isOperatingAsPage && activePageId ? activePageId : undefined,
+      authorPage:
+        isOperatingAsPage && activePage
+          ? {
+              id: activePage.id,
+              businessTitle: activePage.businessTitle,
+              avatarURL: activePage.avatarURL,
+              verificationStatus: activePage.verificationStatus,
+            }
+          : undefined,
       postContent,
       likesCount: 0,
       commentsCount: 0,
@@ -239,7 +254,8 @@ export function CreatePostDialog({
 
     try {
       // Step 1: Create the post first (without attachments)
-      const createdPost = await createPost({
+      // Build request object - only include authorPageID if operating as page
+      const postRequest: Parameters<typeof createPost>[0] = {
         postContent,
         postVisibility: postVisibility.toLowerCase() as
           | "public"
@@ -247,7 +263,14 @@ export function CreatePostDialog({
           | "connections",
         postHashTags: hashtags,
         attachments: [], // We'll add attachments after
-      }).unwrap();
+      };
+
+      // Only add authorPageID if operating as a page
+      if (isOperatingAsPage && activePageId) {
+        postRequest.authorPageID = activePageId;
+      }
+
+      const createdPost = await createPost(postRequest).unwrap();
 
       // Update the optimistic post with real ID
       for (const feed_type of feedTypes) {
@@ -387,20 +410,40 @@ export function CreatePostDialog({
   );
   const VisibilityIcon = selectedVisibility?.icon || Globe;
 
+  // Get display info based on context
+  const displayAvatar = isOperatingAsPage
+    ? activePage?.avatarURL
+    : user?.avatarURL;
+  const displayName = isOperatingAsPage
+    ? activePage?.businessTitle
+    : `${user?.firstName} ${user?.lastName}`;
+  const displayFallback = isOperatingAsPage
+    ? activePage?.businessTitle?.[0] || "B"
+    : `${user?.firstName?.[0]}${user?.lastName?.[0]}`;
+
   const defaultTrigger = (
     <Button
       className="w-full justify-start text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
       variant="ghost"
       data-testid="create-post-trigger"
     >
-      <Avatar className="h-8 w-8 mr-3">
-        <AvatarImage src={user?.avatarURL} />
+      <Avatar
+        className={cn(
+          "h-8 w-8 mr-3",
+          isOperatingAsPage && "border-2 border-blue-500"
+        )}
+      >
+        <AvatarImage src={displayAvatar} />
         <AvatarFallback>
-          {user?.firstName?.[0]}
-          {user?.lastName?.[0]}
+          {isOperatingAsPage ? (
+            <Building2 className="h-4 w-4" />
+          ) : (
+            displayFallback
+          )}
         </AvatarFallback>
       </Avatar>
-      Start a post...
+      Start a post{isOperatingAsPage ? ` as ${activePage?.businessTitle}` : ""}
+      ...
     </Button>
   );
 
@@ -415,19 +458,43 @@ export function CreatePostDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Page Context Banner */}
+          {isOperatingAsPage && activePage && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 flex items-center gap-3">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Posting as {activePage.businessTitle}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  This post will appear from your business page
+                </p>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                Page
+              </Badge>
+            </div>
+          )}
+
           {/* Author Info */}
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={user?.avatarURL} />
+            <Avatar
+              className={cn(
+                "h-12 w-12",
+                isOperatingAsPage && "border-2 border-blue-500"
+              )}
+            >
+              <AvatarImage src={displayAvatar} />
               <AvatarFallback>
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
+                {isOperatingAsPage ? (
+                  <Building2 className="h-5 w-5" />
+                ) : (
+                  displayFallback
+                )}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <h4 className="font-semibold">
-                {user?.firstName} {user?.lastName}
-              </h4>
+              <h4 className="font-semibold">{displayName}</h4>
               <Select
                 value={postVisibility}
                 onValueChange={(value) =>

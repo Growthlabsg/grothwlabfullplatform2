@@ -1,23 +1,55 @@
-"use client"
+"use client";
 
-import { UseFormReturn } from "react-hook-form"
-import { Building, Briefcase, Globe, MapPin, Calendar, Target, Users, DollarSign, Award, Phone, Mail, Linkedin, Twitter, Facebook, Instagram, Plus, X } from "lucide-react"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { useState } from "react";
+import { UseFormReturn } from "react-hook-form";
+import {
+  Building,
+  Briefcase,
+  Globe,
+  MapPin,
+  Calendar,
+  Target,
+  Users,
+  DollarSign,
+  Award,
+  Phone,
+  Mail,
+  Linkedin,
+  Twitter,
+  Facebook,
+  Instagram,
+  Plus,
+  X,
+} from "lucide-react";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface StepProps {
-  form: UseFormReturn<any>
-  generateHandle?: (name: string) => string
-  addToArray?: (field: string, value: string) => void
-  removeFromArray?: (field: string, index: number) => void
-  newValue?: string
-  setNewValue?: (value: string) => void
+  form: UseFormReturn<any>;
+  generateHandle?: (name: string) => string;
+  addToArray?: (field: string, value: string) => void;
+  removeFromArray?: (field: string, index: number) => void;
+  newValue?: string;
+  setNewValue?: (value: string) => void;
 }
 
 // Step 1: Basic Information
@@ -25,7 +57,9 @@ export function BasicInformationStep({ form, generateHandle }: StepProps) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Basic Information
+        </h3>
         <p className="text-sm text-gray-600">Tell us about your business</p>
       </div>
 
@@ -43,14 +77,17 @@ export function BasicInformationStep({ form, generateHandle }: StepProps) {
                   className="pl-9"
                   {...field}
                   onChange={(e) => {
-                    field.onChange(e)
+                    field.onChange(e);
                     if (generateHandle) {
-                      const currentHandle = form.getValues("handle")
-                      const previousName = field.value
-                      const previousAutoHandle = generateHandle(previousName)
+                      const currentHandle = form.getValues("handle");
+                      const previousName = field.value;
+                      const previousAutoHandle = generateHandle(previousName);
 
-                      if (!currentHandle || currentHandle === previousAutoHandle) {
-                        form.setValue("handle", generateHandle(e.target.value))
+                      if (
+                        !currentHandle ||
+                        currentHandle === previousAutoHandle
+                      ) {
+                        form.setValue("handle", generateHandle(e.target.value));
                       }
                     }
                   }}
@@ -70,12 +107,15 @@ export function BasicInformationStep({ form, generateHandle }: StepProps) {
             <FormLabel>Business Handle *</FormLabel>
             <FormControl>
               <div className="flex items-center">
-                <span className="text-muted-foreground mr-2">growthlab.sg/business/</span>
+                <span className="text-muted-foreground mr-2">
+                  growthlab.sg/business/
+                </span>
                 <Input placeholder="your-business" {...field} />
               </div>
             </FormControl>
             <FormDescription>
-              This will be your business page URL. Only lowercase letters, numbers, and hyphens are allowed.
+              This will be your business page URL. Only lowercase letters,
+              numbers, and hyphens are allowed.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -89,112 +129,117 @@ export function BasicInformationStep({ form, generateHandle }: StepProps) {
           <FormItem>
             <FormLabel>Tagline</FormLabel>
             <FormControl>
-              <Input placeholder="A short, memorable phrase that describes your business" {...field} />
+              <Input
+                placeholder="A short, memorable phrase that describes your business"
+                {...field}
+              />
             </FormControl>
             <FormDescription>
-              A catchy one-liner that captures what your business does (optional)
+              A catchy one-liner that captures what your business does
+              (optional)
             </FormDescription>
             <FormMessage />
           </FormItem>
         )}
-        />
+      />
 
-        <FormField
-          control={form.control}
-          name="website"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Website</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="https://yourcompany.com"
-                    className="pl-9"
-                    {...field}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Your company's website URL (optional)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <FormField
+        control={form.control}
+        name="website"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Website</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Globe className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="https://yourcompany.com"
+                  className="pl-9"
+                  {...field}
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Your company's website URL (optional)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location *</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="City, Country (e.g., Singapore, Singapore)"
-                    className="pl-9"
-                    {...field}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Where is your business headquartered?
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <FormField
+        control={form.control}
+        name="location"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Location *</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="City, Country (e.g., Singapore, Singapore)"
+                  className="pl-9"
+                  {...field}
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Where is your business headquartered?
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <FormField
-          control={form.control}
-          name="foundedYear"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Founded Year</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    placeholder="2020"
-                    className="pl-9"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                When was your company founded? (optional)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <FormField
+        control={form.control}
+        name="foundedYear"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Founded Year</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  placeholder="2020"
+                  className="pl-9"
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </div>
+            </FormControl>
+            <FormDescription>
+              When was your company founded? (optional)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <FormField
-          control={form.control}
-          name="description"
+      <FormField
+        control={form.control}
+        name="description"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Description *</FormLabel>
             <FormControl>
-              <Textarea 
+              <Textarea
                 placeholder="Describe what your business does, your mission, and what makes you unique. Be specific about your products, services, and target market."
-                className="min-h-[120px]" 
-                {...field} 
+                className="min-h-[120px]"
+                {...field}
               />
             </FormControl>
             <FormDescription>
-              Provide a comprehensive overview of your business (10-500 characters)
+              Provide a comprehensive overview of your business (10-500
+              characters)
             </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
     </div>
-  )
+  );
 }
 
 // Step 2: Company Details
@@ -203,7 +248,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Company Details</h3>
-        <p className="text-sm text-gray-600">Tell us about your company structure</p>
+        <p className="text-sm text-gray-600">
+          Tell us about your company structure
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -238,7 +285,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
                   <SelectItem value="Media">Media</SelectItem>
                   <SelectItem value="Entertainment">Entertainment</SelectItem>
                   <SelectItem value="Gaming">Gaming</SelectItem>
-                  <SelectItem value="Business Development">Business Development</SelectItem>
+                  <SelectItem value="Business Development">
+                    Business Development
+                  </SelectItem>
                   <SelectItem value="Consulting">Consulting</SelectItem>
                   <SelectItem value="SaaS">SaaS</SelectItem>
                   <SelectItem value="AI/ML">AI/ML</SelectItem>
@@ -248,7 +297,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
                   <SelectItem value="Logistics">Logistics</SelectItem>
                   <SelectItem value="Energy">Energy</SelectItem>
                   <SelectItem value="CleanTech">CleanTech</SelectItem>
-                  <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
+                  <SelectItem value="Food & Beverage">
+                    Food & Beverage
+                  </SelectItem>
                   <SelectItem value="Fashion">Fashion</SelectItem>
                   <SelectItem value="Beauty">Beauty</SelectItem>
                   <SelectItem value="Sports">Sports</SelectItem>
@@ -270,7 +321,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
                   <SelectItem value="Defense">Defense</SelectItem>
                   <SelectItem value="Aerospace">Aerospace</SelectItem>
                   <SelectItem value="Automotive">Automotive</SelectItem>
-                  <SelectItem value="Telecommunications">Telecommunications</SelectItem>
+                  <SelectItem value="Telecommunications">
+                    Telecommunications
+                  </SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -294,12 +347,24 @@ export function CompanyDetailsStep({ form }: StepProps) {
                 <SelectContent>
                   <SelectItem value="Just me">Just me</SelectItem>
                   <SelectItem value="2-10 employees">2-10 employees</SelectItem>
-                  <SelectItem value="11-50 employees">11-50 employees</SelectItem>
-                  <SelectItem value="51-200 employees">51-200 employees</SelectItem>
-                  <SelectItem value="201-500 employees">201-500 employees</SelectItem>
-                  <SelectItem value="501-1000 employees">501-1000 employees</SelectItem>
-                  <SelectItem value="1001-5000 employees">1001-5000 employees</SelectItem>
-                  <SelectItem value="5001+ employees">5001+ employees</SelectItem>
+                  <SelectItem value="11-50 employees">
+                    11-50 employees
+                  </SelectItem>
+                  <SelectItem value="51-200 employees">
+                    51-200 employees
+                  </SelectItem>
+                  <SelectItem value="201-500 employees">
+                    201-500 employees
+                  </SelectItem>
+                  <SelectItem value="501-1000 employees">
+                    501-1000 employees
+                  </SelectItem>
+                  <SelectItem value="1001-5000 employees">
+                    1001-5000 employees
+                  </SelectItem>
+                  <SelectItem value="5001+ employees">
+                    5001+ employees
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -347,7 +412,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Sole Proprietorship">Sole Proprietorship</SelectItem>
+                  <SelectItem value="Sole Proprietorship">
+                    Sole Proprietorship
+                  </SelectItem>
                   <SelectItem value="Partnership">Partnership</SelectItem>
                   <SelectItem value="LLC">LLC</SelectItem>
                   <SelectItem value="Corporation">Corporation</SelectItem>
@@ -401,7 +468,9 @@ export function CompanyDetailsStep({ form }: StepProps) {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="UTC-12">UTC-12 (Baker Island)</SelectItem>
-                  <SelectItem value="UTC-11">UTC-11 (American Samoa)</SelectItem>
+                  <SelectItem value="UTC-11">
+                    UTC-11 (American Samoa)
+                  </SelectItem>
                   <SelectItem value="UTC-10">UTC-10 (Hawaii)</SelectItem>
                   <SelectItem value="UTC-9">UTC-9 (Alaska)</SelectItem>
                   <SelectItem value="UTC-8">UTC-8 (Pacific Time)</SelectItem>
@@ -445,65 +514,7 @@ export function CompanyDetailsStep({ form }: StepProps) {
               />
             </FormControl>
             <div className="space-y-1 leading-none">
-              <FormLabel>
-                Remote Work Available
-              </FormLabel>
-              <FormDescription>
-                Check if your company offers remote work opportunities
-              </FormDescription>
-            </div>
-          </FormItem>
-        )}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Primary Location</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="City, Country" className="pl-9" {...field} />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="headquarters"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Headquarters</FormLabel>
-              <FormControl>
-                <Input placeholder="Headquarters location" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <FormField
-        control={form.control}
-        name="remoteWork"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel>
-                Remote Work Available
-              </FormLabel>
+              <FormLabel>Remote Work Available</FormLabel>
               <FormDescription>
                 Check if your company offers remote work opportunities
               </FormDescription>
@@ -512,18 +523,34 @@ export function CompanyDetailsStep({ form }: StepProps) {
         )}
       />
     </div>
-  )
+  );
 }
 
 // Step 3: Mission & Vision
-export function MissionVisionStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const values = form.watch("values") || []
+export function MissionVisionStep({
+  form,
+  addToArray,
+  removeFromArray,
+}: StepProps) {
+  const [valueInput, setValueInput] = useState("");
+  const values = form.watch("values") || [];
+
+  const handleAddValue = () => {
+    if (valueInput.trim()) {
+      addToArray?.("values", valueInput.trim());
+      setValueInput("");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Mission & Vision</h3>
-        <p className="text-sm text-gray-600">Define your company's purpose and values</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Mission & Vision
+        </h3>
+        <p className="text-sm text-gray-600">
+          Define your company's purpose and values
+        </p>
       </div>
 
       <FormField
@@ -533,14 +560,15 @@ export function MissionVisionStep({ form, addToArray, removeFromArray, newValue,
           <FormItem>
             <FormLabel>Mission Statement</FormLabel>
             <FormControl>
-              <Textarea 
+              <Textarea
                 placeholder="What is your company's purpose? What problem do you solve?"
-                className="min-h-[100px]" 
-                {...field} 
+                className="min-h-[100px]"
+                {...field}
               />
             </FormControl>
             <FormDescription>
-              Describe your company's core purpose and what drives you (optional)
+              Describe your company's core purpose and what drives you
+              (optional)
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -554,10 +582,10 @@ export function MissionVisionStep({ form, addToArray, removeFromArray, newValue,
           <FormItem>
             <FormLabel>Vision Statement</FormLabel>
             <FormControl>
-              <Textarea 
+              <Textarea
                 placeholder="What is your company's vision for the future? What do you want to achieve?"
-                className="min-h-[100px]" 
-                {...field} 
+                className="min-h-[100px]"
+                {...field}
               />
             </FormControl>
             <FormDescription>
@@ -579,20 +607,20 @@ export function MissionVisionStep({ form, addToArray, removeFromArray, newValue,
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add a company value (e.g., Innovation, Integrity, Customer-first)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={valueInput}
+                    onChange={(e) => setValueInput(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("values", newValue || "")
+                        e.preventDefault();
+                        handleAddValue();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("values", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddValue}
+                    disabled={!valueInput.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -600,7 +628,11 @@ export function MissionVisionStep({ form, addToArray, removeFromArray, newValue,
                 {values.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {values.map((value: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {value}
                         <X
                           className="h-3 w-3 cursor-pointer"
@@ -620,19 +652,45 @@ export function MissionVisionStep({ form, addToArray, removeFromArray, newValue,
         )}
       />
     </div>
-  )
+  );
 }
 
 // Step 4: Business Details
-export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const specialties = form.watch("specialties") || []
-  const services = form.watch("services") || []
+export function BusinessDetailsStep({
+  form,
+  addToArray,
+  removeFromArray,
+  newValue,
+  setNewValue,
+}: StepProps) {
+  const [specialtyValue, setSpecialtyValue] = useState("");
+  const [serviceValue, setServiceValue] = useState("");
+  const specialties = form.watch("specialties") || [];
+  const services = form.watch("services") || [];
+
+  const handleAddSpecialty = () => {
+    if (specialtyValue.trim()) {
+      addToArray?.("specialties", specialtyValue);
+      setSpecialtyValue("");
+    }
+  };
+
+  const handleAddService = () => {
+    if (serviceValue.trim()) {
+      addToArray?.("services", serviceValue);
+      setServiceValue("");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Business Details</h3>
-        <p className="text-sm text-gray-600">Tell us about your business offerings</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Business Details
+        </h3>
+        <p className="text-sm text-gray-600">
+          Tell us about your business offerings
+        </p>
       </div>
 
       <FormField
@@ -646,20 +704,20 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add a specialty (e.g., AI/ML, Digital Marketing, Financial Planning)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={specialtyValue}
+                    onChange={(e) => setSpecialtyValue(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("specialties", newValue || "")
+                        e.preventDefault();
+                        handleAddSpecialty();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("specialties", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddSpecialty}
+                    disabled={!specialtyValue.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -667,11 +725,17 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
                 {specialties.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {specialties.map((specialty: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {specialty}
                         <X
                           className="h-3 w-3 cursor-pointer"
-                          onClick={() => removeFromArray?.("specialties", index)}
+                          onClick={() =>
+                            removeFromArray?.("specialties", index)
+                          }
                         />
                       </Badge>
                     ))}
@@ -698,20 +762,20 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add a service or product (e.g., Web Development, Consulting, SaaS Platform)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={serviceValue}
+                    onChange={(e) => setServiceValue(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("services", newValue || "")
+                        e.preventDefault();
+                        handleAddService();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("services", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddService}
+                    disabled={!serviceValue.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -719,7 +783,11 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
                 {services.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {services.map((service: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {service}
                         <X
                           className="h-3 w-3 cursor-pointer"
@@ -746,10 +814,10 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
           <FormItem>
             <FormLabel>Target Audience</FormLabel>
             <FormControl>
-              <Textarea 
+              <Textarea
                 placeholder="Who are your ideal customers? Describe their demographics, needs, and characteristics."
-                className="min-h-[100px]" 
-                {...field} 
+                className="min-h-[100px]"
+                {...field}
               />
             </FormControl>
             <FormDescription>
@@ -774,10 +842,18 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="B2B">B2B (Business to Business)</SelectItem>
-                  <SelectItem value="B2C">B2C (Business to Consumer)</SelectItem>
-                  <SelectItem value="B2B2C">B2B2C (Business to Business to Consumer)</SelectItem>
-                  <SelectItem value="SaaS">SaaS (Software as a Service)</SelectItem>
+                  <SelectItem value="B2B">
+                    B2B (Business to Business)
+                  </SelectItem>
+                  <SelectItem value="B2C">
+                    B2C (Business to Consumer)
+                  </SelectItem>
+                  <SelectItem value="B2B2C">
+                    B2B2C (Business to Business to Consumer)
+                  </SelectItem>
+                  <SelectItem value="SaaS">
+                    SaaS (Software as a Service)
+                  </SelectItem>
                   <SelectItem value="Marketplace">Marketplace</SelectItem>
                   <SelectItem value="Freemium">Freemium</SelectItem>
                   <SelectItem value="Subscription">Subscription</SelectItem>
@@ -958,7 +1034,7 @@ export function BusinessDetailsStep({ form, addToArray, removeFromArray, newValu
         />
       </div>
     </div>
-  )
+  );
 }
 
 // Step 5: Contact & Social
@@ -966,13 +1042,17 @@ export function ContactSocialStep({ form }: StepProps) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Contact & Social Media</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Contact & Social Media
+        </h3>
         <p className="text-sm text-gray-600">How can people reach you?</p>
       </div>
 
       <div className="space-y-4">
-        <h4 className="font-medium text-sm text-gray-700">Contact Information</h4>
-        
+        <h4 className="font-medium text-sm text-gray-700">
+          Contact Information
+        </h4>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -983,7 +1063,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="contact@yourbusiness.com" className="pl-9" {...field} />
+                    <Input
+                      placeholder="contact@yourbusiness.com"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1000,7 +1084,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="+1 (555) 123-4567" className="pl-9" {...field} />
+                    <Input
+                      placeholder="+1 (555) 123-4567"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1016,7 +1104,10 @@ export function ContactSocialStep({ form }: StepProps) {
             <FormItem>
               <FormLabel>Business Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="123 Business St, City, State, Country" {...field} />
+                <Textarea
+                  placeholder="123 Business St, City, State, Country"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -1026,7 +1117,7 @@ export function ContactSocialStep({ form }: StepProps) {
 
       <div className="space-y-4">
         <h4 className="font-medium text-sm text-gray-700">Social Media</h4>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -1037,7 +1128,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Linkedin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="https://linkedin.com/company/yourbusiness" className="pl-9" {...field} />
+                    <Input
+                      placeholder="https://linkedin.com/company/yourbusiness"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1054,7 +1149,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Twitter className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="https://twitter.com/yourbusiness" className="pl-9" {...field} />
+                    <Input
+                      placeholder="https://twitter.com/yourbusiness"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1073,7 +1172,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Facebook className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="https://facebook.com/yourbusiness" className="pl-9" {...field} />
+                    <Input
+                      placeholder="https://facebook.com/yourbusiness"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1090,7 +1193,11 @@ export function ContactSocialStep({ form }: StepProps) {
                 <FormControl>
                   <div className="relative">
                     <Instagram className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="https://instagram.com/yourbusiness" className="pl-9" {...field} />
+                    <Input
+                      placeholder="https://instagram.com/yourbusiness"
+                      className="pl-9"
+                      {...field}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -1100,20 +1207,53 @@ export function ContactSocialStep({ form }: StepProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Step 6: Achievements
-export function AchievementsStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const certifications = form.watch("certifications") || []
-  const awards = form.watch("awards") || []
-  const partnerships = form.watch("partnerships") || []
+export function AchievementsStep({
+  form,
+  addToArray,
+  removeFromArray,
+}: StepProps) {
+  const [certInput, setCertInput] = useState("");
+  const [awardInput, setAwardInput] = useState("");
+  const [partnerInput, setPartnerInput] = useState("");
+
+  const certifications = form.watch("certifications") || [];
+  const awards = form.watch("awards") || [];
+  const partnerships = form.watch("partnerships") || [];
+
+  const handleAddCertification = () => {
+    if (certInput.trim()) {
+      addToArray?.("certifications", certInput.trim());
+      setCertInput("");
+    }
+  };
+
+  const handleAddAward = () => {
+    if (awardInput.trim()) {
+      addToArray?.("awards", awardInput.trim());
+      setAwardInput("");
+    }
+  };
+
+  const handleAddPartnership = () => {
+    if (partnerInput.trim()) {
+      addToArray?.("partnerships", partnerInput.trim());
+      setPartnerInput("");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Achievements & Recognition</h3>
-        <p className="text-sm text-gray-600">Showcase your company's accomplishments</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Achievements & Recognition
+        </h3>
+        <p className="text-sm text-gray-600">
+          Showcase your company's accomplishments
+        </p>
       </div>
 
       <FormField
@@ -1127,20 +1267,20 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add a certification (e.g., ISO 9001, SOC 2, AWS Certified)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={certInput}
+                    onChange={(e) => setCertInput(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("certifications", newValue || "")
+                        e.preventDefault();
+                        handleAddCertification();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("certifications", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddCertification}
+                    disabled={!certInput.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -1148,11 +1288,17 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 {certifications.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {certifications.map((cert: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {cert}
                         <X
                           className="h-3 w-3 cursor-pointer"
-                          onClick={() => removeFromArray?.("certifications", index)}
+                          onClick={() =>
+                            removeFromArray?.("certifications", index)
+                          }
                         />
                       </Badge>
                     ))}
@@ -1179,20 +1325,20 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add an award (e.g., Best Startup 2023, Innovation Award)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={awardInput}
+                    onChange={(e) => setAwardInput(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("awards", newValue || "")
+                        e.preventDefault();
+                        handleAddAward();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("awards", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddAward}
+                    disabled={!awardInput.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -1200,7 +1346,11 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 {awards.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {awards.map((award: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {award}
                         <X
                           className="h-3 w-3 cursor-pointer"
@@ -1231,20 +1381,20 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add a partnership (e.g., Microsoft Partner, Google Cloud Partner)"
-                    value={newValue || ""}
-                    onChange={(e) => setNewValue?.(e.target.value)}
+                    value={partnerInput}
+                    onChange={(e) => setPartnerInput(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        addToArray?.("partnerships", newValue || "")
+                        e.preventDefault();
+                        handleAddPartnership();
                       }
                     }}
                   />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => addToArray?.("partnerships", newValue || "")}
-                    disabled={!newValue?.trim()}
+                    onClick={handleAddPartnership}
+                    disabled={!partnerInput.trim()}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -1252,11 +1402,17 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
                 {partnerships.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {partnerships.map((partnership: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
                         {partnership}
                         <X
                           className="h-3 w-3 cursor-pointer"
-                          onClick={() => removeFromArray?.("partnerships", index)}
+                          onClick={() =>
+                            removeFromArray?.("partnerships", index)
+                          }
                         />
                       </Badge>
                     ))}
@@ -1272,29 +1428,47 @@ export function AchievementsStep({ form, addToArray, removeFromArray, newValue, 
         )}
       />
     </div>
-  )
+  );
 }
 
 // Step 7: Review
 export function ReviewStep({ form }: StepProps) {
-  const values = form.watch()
+  const values = form.watch();
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Review Your Information</h3>
-        <p className="text-sm text-gray-600">Please review all information before creating your business page</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Review Your Information
+        </h3>
+        <p className="text-sm text-gray-600">
+          Please review all information before creating your business page
+        </p>
       </div>
 
       <div className="space-y-6">
         {/* Basic Information */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-semibold text-gray-900 mb-3">Basic Information</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">
+            Basic Information
+          </h4>
           <div className="space-y-2 text-sm">
-            <p><span className="font-medium">Name:</span> {values.name}</p>
-            <p><span className="font-medium">Handle:</span> growthlab.sg/business/{values.handle}</p>
-            {values.tagline && <p><span className="font-medium">Tagline:</span> {values.tagline}</p>}
-            <p><span className="font-medium">Description:</span> {values.description}</p>
+            <p>
+              <span className="font-medium">Name:</span> {values.name}
+            </p>
+            <p>
+              <span className="font-medium">Handle:</span>{" "}
+              growthlab.sg/business/{values.handle}
+            </p>
+            {values.tagline && (
+              <p>
+                <span className="font-medium">Tagline:</span> {values.tagline}
+              </p>
+            )}
+            <p>
+              <span className="font-medium">Description:</span>{" "}
+              {values.description}
+            </p>
           </div>
         </div>
 
@@ -1302,29 +1476,68 @@ export function ReviewStep({ form }: StepProps) {
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-semibold text-gray-900 mb-3">Company Details</h4>
           <div className="space-y-2 text-sm">
-            <p><span className="font-medium">Industry:</span> {values.industry}</p>
-            <p><span className="font-medium">Size:</span> {values.size}</p>
-            {values.companyStage && <p><span className="font-medium">Stage:</span> {values.companyStage}</p>}
-            {values.legalStructure && <p><span className="font-medium">Legal Structure:</span> {values.legalStructure}</p>}
-            {values.foundedYear && <p><span className="font-medium">Founded:</span> {values.foundedYear}</p>}
-            {values.website && <p><span className="font-medium">Website:</span> {values.website}</p>}
-            {values.location && <p><span className="font-medium">Location:</span> {values.location}</p>}
+            <p>
+              <span className="font-medium">Industry:</span> {values.industry}
+            </p>
+            <p>
+              <span className="font-medium">Size:</span> {values.size}
+            </p>
+            {values.companyStage && (
+              <p>
+                <span className="font-medium">Stage:</span>{" "}
+                {values.companyStage}
+              </p>
+            )}
+            {values.legalStructure && (
+              <p>
+                <span className="font-medium">Legal Structure:</span>{" "}
+                {values.legalStructure}
+              </p>
+            )}
+            {values.foundedYear && (
+              <p>
+                <span className="font-medium">Founded:</span>{" "}
+                {values.foundedYear}
+              </p>
+            )}
+            {values.website && (
+              <p>
+                <span className="font-medium">Website:</span> {values.website}
+              </p>
+            )}
+            {values.location && (
+              <p>
+                <span className="font-medium">Location:</span> {values.location}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Mission & Vision */}
         {(values.mission || values.vision || values.values?.length > 0) && (
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-gray-900 mb-3">Mission & Vision</h4>
+            <h4 className="font-semibold text-gray-900 mb-3">
+              Mission & Vision
+            </h4>
             <div className="space-y-2 text-sm">
-              {values.mission && <p><span className="font-medium">Mission:</span> {values.mission}</p>}
-              {values.vision && <p><span className="font-medium">Vision:</span> {values.vision}</p>}
+              {values.mission && (
+                <p>
+                  <span className="font-medium">Mission:</span> {values.mission}
+                </p>
+              )}
+              {values.vision && (
+                <p>
+                  <span className="font-medium">Vision:</span> {values.vision}
+                </p>
+              )}
               {values.values?.length > 0 && (
                 <div>
                   <span className="font-medium">Values:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {values.values.map((value: string, index: number) => (
-                      <Badge key={index} variant="secondary">{value}</Badge>
+                      <Badge key={index} variant="secondary">
+                        {value}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -1334,17 +1547,25 @@ export function ReviewStep({ form }: StepProps) {
         )}
 
         {/* Business Details */}
-        {(values.specialties?.length > 0 || values.services?.length > 0 || values.targetAudience) && (
+        {(values.specialties?.length > 0 ||
+          values.services?.length > 0 ||
+          values.targetAudience) && (
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-gray-900 mb-3">Business Details</h4>
+            <h4 className="font-semibold text-gray-900 mb-3">
+              Business Details
+            </h4>
             <div className="space-y-2 text-sm">
               {values.specialties?.length > 0 && (
                 <div>
                   <span className="font-medium">Specialties:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {values.specialties.map((specialty: string, index: number) => (
-                      <Badge key={index} variant="secondary">{specialty}</Badge>
-                    ))}
+                    {values.specialties.map(
+                      (specialty: string, index: number) => (
+                        <Badge key={index} variant="secondary">
+                          {specialty}
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -1353,35 +1574,88 @@ export function ReviewStep({ form }: StepProps) {
                   <span className="font-medium">Services:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {values.services.map((service: string, index: number) => (
-                      <Badge key={index} variant="secondary">{service}</Badge>
+                      <Badge key={index} variant="secondary">
+                        {service}
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
-              {values.targetAudience && <p><span className="font-medium">Target Audience:</span> {values.targetAudience}</p>}
-              {values.businessModel && <p><span className="font-medium">Business Model:</span> {values.businessModel}</p>}
-              {values.fundingStage && <p><span className="font-medium">Funding Stage:</span> {values.fundingStage}</p>}
+              {values.targetAudience && (
+                <p>
+                  <span className="font-medium">Target Audience:</span>{" "}
+                  {values.targetAudience}
+                </p>
+              )}
+              {values.businessModel && (
+                <p>
+                  <span className="font-medium">Business Model:</span>{" "}
+                  {values.businessModel}
+                </p>
+              )}
+              {values.fundingStage && (
+                <p>
+                  <span className="font-medium">Funding Stage:</span>{" "}
+                  {values.fundingStage}
+                </p>
+              )}
             </div>
           </div>
         )}
 
         {/* Contact & Social */}
-        {(values.contactInfo?.email || values.contactInfo?.phone || values.socialMedia?.linkedin) && (
+        {(values.contactInfo?.email ||
+          values.contactInfo?.phone ||
+          values.socialMedia?.linkedin) && (
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-gray-900 mb-3">Contact & Social</h4>
+            <h4 className="font-semibold text-gray-900 mb-3">
+              Contact & Social
+            </h4>
             <div className="space-y-2 text-sm">
-              {values.contactInfo?.email && <p><span className="font-medium">Email:</span> {values.contactInfo.email}</p>}
-              {values.contactInfo?.phone && <p><span className="font-medium">Phone:</span> {values.contactInfo.phone}</p>}
-              {values.socialMedia?.linkedin && <p><span className="font-medium">LinkedIn:</span> {values.socialMedia.linkedin}</p>}
-              {values.socialMedia?.twitter && <p><span className="font-medium">Twitter:</span> {values.socialMedia.twitter}</p>}
-              {values.socialMedia?.facebook && <p><span className="font-medium">Facebook:</span> {values.socialMedia.facebook}</p>}
-              {values.socialMedia?.instagram && <p><span className="font-medium">Instagram:</span> {values.socialMedia.instagram}</p>}
+              {values.contactInfo?.email && (
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  {values.contactInfo.email}
+                </p>
+              )}
+              {values.contactInfo?.phone && (
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  {values.contactInfo.phone}
+                </p>
+              )}
+              {values.socialMedia?.linkedin && (
+                <p>
+                  <span className="font-medium">LinkedIn:</span>{" "}
+                  {values.socialMedia.linkedin}
+                </p>
+              )}
+              {values.socialMedia?.twitter && (
+                <p>
+                  <span className="font-medium">Twitter:</span>{" "}
+                  {values.socialMedia.twitter}
+                </p>
+              )}
+              {values.socialMedia?.facebook && (
+                <p>
+                  <span className="font-medium">Facebook:</span>{" "}
+                  {values.socialMedia.facebook}
+                </p>
+              )}
+              {values.socialMedia?.instagram && (
+                <p>
+                  <span className="font-medium">Instagram:</span>{" "}
+                  {values.socialMedia.instagram}
+                </p>
+              )}
             </div>
           </div>
         )}
 
         {/* Achievements */}
-        {(values.certifications?.length > 0 || values.awards?.length > 0 || values.partnerships?.length > 0) && (
+        {(values.certifications?.length > 0 ||
+          values.awards?.length > 0 ||
+          values.partnerships?.length > 0) && (
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-semibold text-gray-900 mb-3">Achievements</h4>
             <div className="space-y-2 text-sm">
@@ -1389,9 +1663,13 @@ export function ReviewStep({ form }: StepProps) {
                 <div>
                   <span className="font-medium">Certifications:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {values.certifications.map((cert: string, index: number) => (
-                      <Badge key={index} variant="secondary">{cert}</Badge>
-                    ))}
+                    {values.certifications.map(
+                      (cert: string, index: number) => (
+                        <Badge key={index} variant="secondary">
+                          {cert}
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -1400,7 +1678,9 @@ export function ReviewStep({ form }: StepProps) {
                   <span className="font-medium">Awards:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {values.awards.map((award: string, index: number) => (
-                      <Badge key={index} variant="secondary">{award}</Badge>
+                      <Badge key={index} variant="secondary">
+                        {award}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -1409,9 +1689,13 @@ export function ReviewStep({ form }: StepProps) {
                 <div>
                   <span className="font-medium">Partnerships:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {values.partnerships.map((partnership: string, index: number) => (
-                      <Badge key={index} variant="secondary">{partnership}</Badge>
-                    ))}
+                    {values.partnerships.map(
+                      (partnership: string, index: number) => (
+                        <Badge key={index} variant="secondary">
+                          {partnership}
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -1420,16 +1704,22 @@ export function ReviewStep({ form }: StepProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // Step 6: Team & Founders
-export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const founders = form.watch("founders") || []
-  const team = form.watch("team") || []
+export function TeamFoundersStep({
+  form,
+  addToArray,
+  removeFromArray,
+  newValue,
+  setNewValue,
+}: StepProps) {
+  const founders = form.watch("founders") || [];
+  const team = form.watch("team") || [];
 
   const addFounder = () => {
-    const currentFounders = form.getValues("founders") || []
+    const currentFounders = form.getValues("founders") || [];
     form.setValue("founders", [
       ...currentFounders,
       {
@@ -1439,16 +1729,19 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
         avatar: "",
         linkedin: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const removeFounder = (index: number) => {
-    const currentFounders = form.getValues("founders") || []
-    form.setValue("founders", currentFounders.filter((_: any, i: number) => i !== index))
-  }
+    const currentFounders = form.getValues("founders") || [];
+    form.setValue(
+      "founders",
+      currentFounders.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   const addTeamMember = () => {
-    const currentTeam = form.getValues("team") || []
+    const currentTeam = form.getValues("team") || [];
     form.setValue("team", [
       ...currentTeam,
       {
@@ -1457,19 +1750,24 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
         department: "",
         avatar: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const removeTeamMember = (index: number) => {
-    const currentTeam = form.getValues("team") || []
-    form.setValue("team", currentTeam.filter((_: any, i: number) => i !== index))
-  }
+    const currentTeam = form.getValues("team") || [];
+    form.setValue(
+      "team",
+      currentTeam.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Team & Founders</h3>
-        <p className="text-sm text-gray-600">Tell us about your key team members and founders</p>
+        <p className="text-sm text-gray-600">
+          Tell us about your key team members and founders
+        </p>
       </div>
 
       {/* Founders Section */}
@@ -1533,7 +1831,10 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
                   <FormItem>
                     <FormLabel>LinkedIn</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://linkedin.com/in/username" {...field} />
+                      <Input
+                        placeholder="https://linkedin.com/in/username"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1547,7 +1848,10 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
                   <FormItem>
                     <FormLabel>Avatar URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/avatar.jpg" {...field} />
+                      <Input
+                        placeholder="https://example.com/avatar.jpg"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1562,10 +1866,10 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
                 <FormItem>
                   <FormLabel>Bio *</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Brief bio about the founder's background and experience"
-                      className="min-h-[80px]" 
-                      {...field} 
+                      className="min-h-[80px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -1666,7 +1970,10 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
                   <FormItem>
                     <FormLabel>Avatar URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/avatar.jpg" {...field} />
+                      <Input
+                        placeholder="https://example.com/avatar.jpg"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1677,15 +1984,21 @@ export function TeamFoundersStep({ form, addToArray, removeFromArray, newValue, 
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // Step 7: Funding & Investors
-export function FundingInvestorsStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const investors = form.watch("investors") || []
+export function FundingInvestorsStep({
+  form,
+  addToArray,
+  removeFromArray,
+  newValue,
+  setNewValue,
+}: StepProps) {
+  const investors = form.watch("investors") || [];
 
   const addInvestor = () => {
-    const currentInvestors = form.getValues("investors") || []
+    const currentInvestors = form.getValues("investors") || [];
     form.setValue("investors", [
       ...currentInvestors,
       {
@@ -1693,19 +2006,26 @@ export function FundingInvestorsStep({ form, addToArray, removeFromArray, newVal
         type: "",
         logo: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const removeInvestor = (index: number) => {
-    const currentInvestors = form.getValues("investors") || []
-    form.setValue("investors", currentInvestors.filter((_: any, i: number) => i !== index))
-  }
+    const currentInvestors = form.getValues("investors") || [];
+    form.setValue(
+      "investors",
+      currentInvestors.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Funding & Investors</h3>
-        <p className="text-sm text-gray-600">Tell us about your funding and investors</p>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Funding & Investors
+        </h3>
+        <p className="text-sm text-gray-600">
+          Tell us about your funding and investors
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1788,7 +2108,10 @@ export function FundingInvestorsStep({ form, addToArray, removeFromArray, newVal
                   <FormItem>
                     <FormLabel>Investor Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Sequoia Capital, 500 Startups, etc." {...field} />
+                      <Input
+                        placeholder="Sequoia Capital, 500 Startups, etc."
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1808,12 +2131,22 @@ export function FundingInvestorsStep({ form, addToArray, removeFromArray, newVal
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Venture Capital">Venture Capital</SelectItem>
-                        <SelectItem value="Angel Investor">Angel Investor</SelectItem>
+                        <SelectItem value="Venture Capital">
+                          Venture Capital
+                        </SelectItem>
+                        <SelectItem value="Angel Investor">
+                          Angel Investor
+                        </SelectItem>
                         <SelectItem value="Accelerator">Accelerator</SelectItem>
-                        <SelectItem value="Sovereign Wealth Fund">Sovereign Wealth Fund</SelectItem>
-                        <SelectItem value="Corporate VC">Corporate VC</SelectItem>
-                        <SelectItem value="Private Equity">Private Equity</SelectItem>
+                        <SelectItem value="Sovereign Wealth Fund">
+                          Sovereign Wealth Fund
+                        </SelectItem>
+                        <SelectItem value="Corporate VC">
+                          Corporate VC
+                        </SelectItem>
+                        <SelectItem value="Private Equity">
+                          Private Equity
+                        </SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1829,7 +2162,10 @@ export function FundingInvestorsStep({ form, addToArray, removeFromArray, newVal
                   <FormItem>
                     <FormLabel>Logo URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/logo.png" {...field} />
+                      <Input
+                        placeholder="https://example.com/logo.png"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1840,16 +2176,22 @@ export function FundingInvestorsStep({ form, addToArray, removeFromArray, newVal
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // Step 8: Jobs & Updates
-export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, setNewValue }: StepProps) {
-  const jobs = form.watch("jobs") || []
-  const updates = form.watch("updates") || []
+export function JobsUpdatesStep({
+  form,
+  addToArray,
+  removeFromArray,
+  newValue,
+  setNewValue,
+}: StepProps) {
+  const jobs = form.watch("jobs") || [];
+  const updates = form.watch("updates") || [];
 
   const addJob = () => {
-    const currentJobs = form.getValues("jobs") || []
+    const currentJobs = form.getValues("jobs") || [];
     form.setValue("jobs", [
       ...currentJobs,
       {
@@ -1860,40 +2202,48 @@ export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, s
         location: "",
         description: "",
         requirements: [],
-        posted: new Date().toISOString().split('T')[0],
+        posted: new Date().toISOString().split("T")[0],
       },
-    ])
-  }
+    ]);
+  };
 
   const removeJob = (index: number) => {
-    const currentJobs = form.getValues("jobs") || []
-    form.setValue("jobs", currentJobs.filter((_: any, i: number) => i !== index))
-  }
+    const currentJobs = form.getValues("jobs") || [];
+    form.setValue(
+      "jobs",
+      currentJobs.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   const addUpdate = () => {
-    const currentUpdates = form.getValues("updates") || []
+    const currentUpdates = form.getValues("updates") || [];
     form.setValue("updates", [
       ...currentUpdates,
       {
         id: `update-${Date.now()}`,
         title: "",
         content: "",
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split("T")[0],
         author: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const removeUpdate = (index: number) => {
-    const currentUpdates = form.getValues("updates") || []
-    form.setValue("updates", currentUpdates.filter((_: any, i: number) => i !== index))
-  }
+    const currentUpdates = form.getValues("updates") || [];
+    form.setValue(
+      "updates",
+      currentUpdates.filter((_: any, i: number) => i !== index)
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Jobs & Updates</h3>
-        <p className="text-sm text-gray-600">Add open positions and company updates</p>
+        <p className="text-sm text-gray-600">
+          Add open positions and company updates
+        </p>
       </div>
 
       {/* Jobs Section */}
@@ -1929,7 +2279,10 @@ export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, s
                   <FormItem>
                     <FormLabel>Job Title *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Senior Full Stack Engineer" {...field} />
+                      <Input
+                        placeholder="Senior Full Stack Engineer"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -2011,10 +2364,10 @@ export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, s
                 <FormItem>
                   <FormLabel>Job Description *</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Describe the role and responsibilities"
-                      className="min-h-[100px]" 
-                      {...field} 
+                      className="min-h-[100px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -2087,10 +2440,10 @@ export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, s
                 <FormItem>
                   <FormLabel>Update Content *</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Share the latest news and updates about your company"
-                      className="min-h-[100px]" 
-                      {...field} 
+                      className="min-h-[100px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -2101,16 +2454,43 @@ export function JobsUpdatesStep({ form, addToArray, removeFromArray, newValue, s
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // Product Information Step
 export function ProductInformationStep({ form }: { form: any }) {
+  const [featureInput, setFeatureInput] = useState("");
+  const [integrationInput, setIntegrationInput] = useState("");
+
+  const handleAddFeature = () => {
+    if (featureInput.trim()) {
+      const currentFeatures = form.getValues("product.features") || [];
+      form.setValue("product.features", [
+        ...currentFeatures,
+        featureInput.trim(),
+      ]);
+      setFeatureInput("");
+    }
+  };
+
+  const handleAddIntegration = () => {
+    if (integrationInput.trim()) {
+      const currentIntegrations = form.getValues("product.integrations") || [];
+      form.setValue("product.integrations", [
+        ...currentIntegrations,
+        integrationInput.trim(),
+      ]);
+      setIntegrationInput("");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Product Information</h3>
-        <p className="text-sm text-gray-600 mb-6">Tell us about your product or service offering.</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Tell us about your product or service offering.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2135,10 +2515,10 @@ export function ProductInformationStep({ form }: { form: any }) {
             <FormItem>
               <FormLabel>Product Description</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Describe your product or service in detail..."
                   className="min-h-[100px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -2159,38 +2539,49 @@ export function ProductInformationStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add a feature..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={featureInput}
+                      onChange={(e) => setFeatureInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddFeature();
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentFeatures = field.value || []
-                          form.setValue("product.features", [...currentFeatures, value.trim()])
-                          form.setValue("newValue", "")
-                        }
-                      }}
+                      onClick={handleAddFeature}
+                      disabled={!featureInput.trim()}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(field.value || []).map((feature: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                        {feature}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => {
-                            const currentFeatures = field.value || []
-                            form.setValue("product.features", currentFeatures.filter((_: any, i: number) => i !== index))
-                          }}
-                        />
-                      </Badge>
-                    ))}
+                    {(field.value || []).map(
+                      (feature: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {feature}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              const currentFeatures = field.value || [];
+                              form.setValue(
+                                "product.features",
+                                currentFeatures.filter(
+                                  (_: any, i: number) => i !== index
+                                )
+                              );
+                            }}
+                          />
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               </FormControl>
@@ -2257,38 +2648,49 @@ export function ProductInformationStep({ form }: { form: any }) {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Add an integration..."
-                      value={form.watch("newValue") || ""}
-                      onChange={(e) => form.setValue("newValue", e.target.value)}
+                      value={integrationInput}
+                      onChange={(e) => setIntegrationInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddIntegration();
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const value = form.getValues("newValue")
-                        if (value?.trim()) {
-                          const currentIntegrations = field.value || []
-                          form.setValue("product.integrations", [...currentIntegrations, value.trim()])
-                          form.setValue("newValue", "")
-                        }
-                      }}
+                      onClick={handleAddIntegration}
+                      disabled={!integrationInput.trim()}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(field.value || []).map((integration: string, index: number) => (
-                      <Badge key={index} variant="outline" className="flex items-center gap-1">
-                        {integration}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => {
-                            const currentIntegrations = field.value || []
-                            form.setValue("product.integrations", currentIntegrations.filter((_: any, i: number) => i !== index))
-                          }}
-                        />
-                      </Badge>
-                    ))}
+                    {(field.value || []).map(
+                      (integration: string, index: number) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
+                          {integration}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              const currentIntegrations = field.value || [];
+                              form.setValue(
+                                "product.integrations",
+                                currentIntegrations.filter(
+                                  (_: any, i: number) => i !== index
+                                )
+                              );
+                            }}
+                          />
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               </FormControl>
@@ -2298,5 +2700,5 @@ export function ProductInformationStep({ form }: { form: any }) {
         />
       </div>
     </div>
-  )
+  );
 }

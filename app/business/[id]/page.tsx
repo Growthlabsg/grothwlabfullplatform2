@@ -1,628 +1,681 @@
-"use client"
+"use client";
 
-import { useState, useEffect, use } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useJobs } from "@/contexts/JobContext"
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
-  Building,
-  Globe,
-  Users,
-  TrendingUp,
-  Calendar,
+  ArrowLeft,
   MapPin,
-  Mail,
-  ExternalLink,
-  Briefcase,
-  Star,
-  Share2,
-  MessageSquare,
-  ChevronLeft,
-  Zap,
-  Award,
-  BarChart3,
-  Layers,
-  Clock,
-  Heart,
-  Bookmark,
-  Send,
+  Globe,
   Phone,
-  Linkedin,
-  Twitter,
-  Facebook,
-  Instagram,
-  DollarSign,
-  Target,
-  CheckCircle,
-  ArrowRight,
-  Eye,
-  ThumbsUp,
+  Mail,
+  Calendar,
+  Users,
+  FileText,
+  Building2,
+  Share2,
   MessageCircle,
-  Plus,
-  Minus,
-  ChevronDown,
-  ChevronUp,
-  Download,
-  Upload,
-  Bell,
-  Settings,
-  Edit,
-  Trash2,
   MoreHorizontal,
-  Filter,
-  Search,
-  SortAsc,
-  SortDesc,
-  Grid,
-  List
-} from "lucide-react"
-import Link from "next/link"
+  CheckCircle,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Instagram,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Post as ApiPost } from "@/components/feed/api-post";
+import {
+  useGetPageQuery,
+  useGetPagePostsQuery,
+  useToggleFollowPageMutation,
+} from "@/lib/redux/pagesApi";
 
-// Mock business data
-const MOCK_BUSINESSES = {
-  "1": {
-    id: "1",
-    name: "TechNova Solutions",
-    handle: "technova",
-    description: "Leading AI-powered enterprise solutions",
-    longDescription: "TechNova Solutions is a cutting-edge technology company specializing in artificial intelligence and machine learning solutions for enterprise clients. We help businesses transform their operations through innovative AI technologies.",
-    industry: "Artificial Intelligence",
-    size: "25-50",
-    location: "Singapore",
-    foundedYear: 2020,
-    logo: "TN",
-    coverImage: "/images/technova-cover.jpg",
-    website: "https://technova.com",
-    contactInfo: {
-      email: "contact@technova.com",
-      phone: "+65 6123 4567",
-      address: "123 Innovation Drive, Singapore 123456"
-    },
-    followers: 2500,
-    employees: 35,
-    verified: true,
-    featured: true,
-    tagline: "Empowering businesses with AI",
-    mission: "To democratize AI technology for businesses of all sizes",
-    vision: "A world where AI enhances human potential",
-    values: ["Innovation", "Excellence", "Collaboration", "Impact"],
-    specialties: ["Machine Learning", "Natural Language Processing", "Computer Vision", "Data Analytics"],
-    services: ["AI Consulting", "Custom AI Solutions", "AI Training", "Support"],
-    targetAudience: "Enterprise businesses",
-    businessModel: "B2B SaaS",
-    fundingStage: "Series A",
-    revenue: "$5M ARR",
-    socialMedia: {
-      linkedin: "https://linkedin.com/company/technova",
-      twitter: "https://twitter.com/technova",
-      facebook: "https://facebook.com/technova",
-      instagram: "https://instagram.com/technova"
-    },
-    team: [
-      {
-        name: "Sarah Chen",
-        role: "CEO & Co-founder",
-        avatar: "/images/sarah-chen.jpg",
-        bio: "Former Google AI researcher with 10+ years experience"
-      },
-      {
-        name: "Michael Rodriguez",
-        role: "CTO & Co-founder",
-        avatar: "/images/michael-rodriguez.jpg",
-        bio: "Ex-Microsoft engineer, AI specialist"
-      }
-    ],
-    milestones: [
-      {
-        date: "2024-01-15",
-        title: "Series A Funding",
-        description: "Raised $10M in Series A funding led by Sequoia Capital"
-      },
-      {
-        date: "2023-12-01",
-        title: "Product Launch",
-        description: "Launched our flagship AI platform for enterprise clients"
-      }
-    ],
-    achievements: [
-      "Forbes 30 Under 30",
-      "Best AI Startup 2023",
-      "ISO 27001 Certified"
-    ]
-  }
-}
+export default function BusinessPageView() {
+  const params = useParams();
+  const router = useRouter();
+  const pageId = Number(params.id);
 
-export default function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { getJobsByCompany } = useJobs()
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  const [showAllJobs, setShowAllJobs] = useState(false)
-  const [businessJobs, setBusinessJobs] = useState<any[]>([])
-  const [jobsLoading, setJobsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("overview");
+  const [postsPage, setPostsPage] = useState(1);
 
-  // Use React's use hook to unwrap the params Promise
-  const { id: businessId } = use(params)
-  const business = MOCK_BUSINESSES[businessId as keyof typeof MOCK_BUSINESSES]
+  const {
+    data: pageData,
+    isLoading: pageLoading,
+    error: pageError,
+  } = useGetPageQuery(pageId);
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+    isFetching: postsFetching,
+  } = useGetPagePostsQuery({
+    pageId,
+    page: postsPage,
+    limit: 10,
+  });
+  const [toggleFollow, { isLoading: followLoading }] =
+    useToggleFollowPageMutation();
 
-  // Load jobs for this business
-  useEffect(() => {
-    setJobsLoading(true)
+  // API returns BusinessPage directly, not wrapped in { page: ... }
+  const page = pageData;
+  const posts = postsData?.posts || [];
+
+  const handleFollow = async () => {
+    if (!page) return;
     try {
-      const jobs = getJobsByCompany(businessId)
-      setBusinessJobs(jobs)
+      await toggleFollow(pageId).unwrap();
     } catch (error) {
-      console.error('Error loading jobs:', error)
-      setBusinessJobs([])
-    } finally {
-      setJobsLoading(false)
+      console.error("Failed to toggle follow:", error);
     }
-  }, [businessId, getJobsByCompany])
+  };
 
-  if (!business) {
+  const handleMessage = () => {
+    // TODO: Implement messaging
+    console.log("Message page:", pageId);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: page?.businessTitle || "Business Page",
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "Unknown";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatNumber = (num: number | undefined | null) => {
+    if (!num) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toString();
+  };
+
+  if (pageLoading) {
+    return <PageSkeleton />;
+  }
+
+  if (pageError || !page) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Business Not Found</h1>
-          <p className="text-gray-600 mb-6">The business you're looking for doesn't exist.</p>
-          <Button asChild>
-            <Link href="/business">Back to Businesses</Link>
-          </Button>
-        </div>
+      <div className="container max-w-4xl mx-auto px-4 py-8">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-2xl font-semibold mb-2">Page Not Found</h2>
+            <p className="text-muted-foreground mb-4">
+              This business page doesn&apos;t exist or may have been removed.
+            </p>
+            <Button onClick={() => router.push("/")}>Return Home</Button>
+          </CardContent>
+        </Card>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto max-w-7xl px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Button variant="outline" asChild>
-            <Link href="/business">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Businesses
-            </Link>
-          </Button>
-        </div>
+    <div className="min-h-screen bg-background">
+      {/* Cover Image */}
+      <div className="relative h-48 md:h-64 lg:h-80 bg-gradient-to-r from-blue-600 to-purple-600">
+        {page.coverImageURL && (
+          <Image
+            src={page.coverImageURL}
+            alt={`${page.businessTitle} cover`}
+            fill
+            className="object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/20" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="absolute top-4 left-4 text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+      </div>
 
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border mb-8">
-          {/* Cover Image */}
-          <div className="h-48 bg-gradient-to-r from-[#0F7377] to-[#0F7377]/80 rounded-t-lg relative">
-            <div className="absolute inset-0 bg-black/20 rounded-t-lg"></div>
-            <div className="absolute bottom-4 right-4">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="bg-white/90">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                <Button variant="outline" size="sm" className="bg-white/90">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Message
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-white/90"
-                  onClick={() => setIsFollowing(!isFollowing)}
-                >
-                  {isFollowing ? "Following" : "Follow"}
-                </Button>
-              </div>
+      {/* Profile Section */}
+      <div className="container max-w-4xl mx-auto px-4">
+        <div className="relative -mt-16 md:-mt-20 mb-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-4">
+            {/* Profile Image */}
+            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-xl border-4 border-background bg-background overflow-hidden shadow-lg">
+              {page.avatarURL ? (
+                <Image
+                  src={page.avatarURL}
+                  alt={page.businessTitle}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Building2 className="h-16 w-16 text-white" />
+                </div>
+              )}
+              {page.verificationStatus === "verified" && (
+                <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full p-1">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Business Info */}
-          <div className="p-6">
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-shrink-0">
-                <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                  <AvatarFallback className="text-2xl font-bold bg-[#0F7377] text-white">
-                    {business.logo}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h1 className="text-3xl font-bold text-gray-900">{business.name}</h1>
-                      {business.verified && (
-                        <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Verified
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-lg text-gray-600 mb-2">{business.tagline}</p>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {business.location}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Building className="h-4 w-4" />
-                        {business.industry}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {business.size} employees
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Founded {business.foundedYear}
-                      </span>
-                    </div>
+            {/* Page Info */}
+            <div className="flex-1 pb-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold">
+                      {page.businessTitle}
+                    </h1>
+                    {page.verificationStatus === "verified" && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-700"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 mt-4 md:mt-0">
-                    <Button variant="outline" size="sm">
-                      <Bookmark className="h-4 w-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button size="sm" className="bg-[#0F7377] hover:bg-[#0F7377]/90">
-                      <Send className="h-4 w-4 mr-2" />
-                      Contact
-                    </Button>
-                  </div>
+                  {page.tagline && (
+                    <p className="text-muted-foreground mt-1">{page.tagline}</p>
+                  )}
+                  {page.industry && (
+                    <Badge variant="outline" className="mt-2">
+                      {page.industry}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pb-2">
+              <Button
+                onClick={handleFollow}
+                disabled={followLoading}
+                variant="default"
+              >
+                Follow
+              </Button>
+              <Button variant="outline" onClick={handleMessage}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleShare}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share Page
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Followers</span>
-                  <span className="font-semibold">{business.followers.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Employees</span>
-                  <span className="font-semibold">{business.employees}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Founded</span>
-                  <span className="font-semibold">{business.foundedYear}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Funding Stage</span>
-                  <span className="font-semibold">{business.fundingStage}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Contact Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{business.contactInfo.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{business.contactInfo.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{business.contactInfo.address}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-gray-500" />
-                  <a 
-                    href={business.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-[#0F7377] hover:underline"
-                  >
-                    {business.website}
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Social Media */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Social Media</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={business.socialMedia.linkedin} target="_blank" rel="noopener noreferrer">
-                      <Linkedin className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={business.socialMedia.twitter} target="_blank" rel="noopener noreferrer">
-                      <Twitter className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={business.socialMedia.facebook} target="_blank" rel="noopener noreferrer">
-                      <Facebook className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={business.socialMedia.instagram} target="_blank" rel="noopener noreferrer">
-                      <Instagram className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Stats */}
+        <div className="flex items-center gap-6 mb-6 text-sm">
+          <div className="flex items-center gap-1">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">
+              {formatNumber(page.totalFollowers)}
+            </span>
+            <span className="text-muted-foreground">followers</span>
           </div>
+          <div className="flex items-center gap-1">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">
+              {formatNumber(page.totalPosts)}
+            </span>
+            <span className="text-muted-foreground">posts</span>
+          </div>
+          {page.teamSize && (
+            <div className="flex items-center gap-1">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="font-semibold">{page.teamSize}</span>
+              <span className="text-muted-foreground">employees</span>
+            </div>
+          )}
+        </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="jobs">Jobs</TabsTrigger>
-                <TabsTrigger value="milestones">Milestones</TabsTrigger>
-                <TabsTrigger value="contact">Contact</TabsTrigger>
-              </TabsList>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="about">About</TabsTrigger>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+          </TabsList>
 
-              {/* Overview Tab */}
-              <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="mt-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Main Content */}
+              <div className="md:col-span-2 space-y-6">
+                {/* Description */}
+                {page.description && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <h3 className="font-semibold mb-2">About</h3>
+                      <p className="text-muted-foreground whitespace-pre-wrap">
+                        {page.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recent Posts */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>About {business.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 leading-relaxed mb-4">{business.longDescription}</p>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-semibold mb-2">Mission</h4>
-                        <p className="text-gray-600 text-sm">{business.mission}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Vision</h4>
-                        <p className="text-gray-600 text-sm">{business.vision}</p>
-                      </div>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">Recent Posts</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab("posts")}
+                      >
+                        View all
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Specialties</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {business.specialties.map((specialty) => (
-                        <Badge key={specialty} variant="secondary">
-                          {specialty}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Jobs Tab */}
-              <TabsContent value="jobs" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Open Positions</CardTitle>
-                    <CardDescription>Join our growing team at {business.name}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {jobsLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F7377]"></div>
-                        <span className="ml-2 text-gray-600">Loading jobs...</span>
-                      </div>
-                    ) : businessJobs.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Open Positions</h3>
-                        <p className="text-gray-600 mb-4">This business doesn't have any active job postings at the moment.</p>
-                        <Button asChild>
-                          <Link href="/jobs/find-startup-jobs">Browse All Jobs</Link>
-                        </Button>
+                    {postsLoading ? (
+                      <PostsSkeleton />
+                    ) : posts.length > 0 ? (
+                      <div className="space-y-4">
+                        {posts.slice(0, 3).map((post) => (
+                          <ApiPost key={post.id} post={post} />
+                        ))}
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {businessJobs.slice(0, showAllJobs ? businessJobs.length : 3).map((job) => (
-                          <div key={job.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <h4 className="font-semibold text-lg">{job.title}</h4>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                  <span className="flex items-center gap-1">
-                                    <Briefcase className="h-4 w-4" />
-                                    {job.department}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    {job.type}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="h-4 w-4" />
-                                    {job.location}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <DollarSign className="h-4 w-4" />
-                                    {job.salary}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mb-3">
-                                {job.visaSponsorship && (
-                                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Visa Sponsorship
-                                  </Badge>
-                                )}
-                                {job.featured && (
-                                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-                                    <Star className="h-3 w-3 mr-1" />
-                                    Featured
-                                  </Badge>
-                                )}
-                              </div>
-                              <Button 
-                                size="sm" 
-                                className="bg-[#0F7377] hover:bg-[#0F7377]/90 text-white font-semibold"
-                                asChild
-                              >
-                                <Link href={`/jobs/find-startup-jobs?job=${job.id}`}>
-                                  Apply Now
-                                </Link>
-                              </Button>
-                            </div>
-                            <p className="text-gray-700 mb-3">{job.description}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {job.skills.slice(0, 5).map((skill) => (
-                                <Badge key={skill} variant="outline" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                              {job.skills.length > 5 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{job.skills.length - 5} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {businessJobs.length > 3 && !showAllJobs && (
-                          <div className="text-center pt-4">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setShowAllJobs(true)}
-                            >
-                              View All {businessJobs.length} Jobs
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <p className="text-muted-foreground text-center py-8">
+                        No posts yet
+                      </p>
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
 
-              {/* Other tabs would go here */}
-              <TabsContent value="about" className="space-y-6">
+              {/* Sidebar */}
+              <div className="space-y-6">
+                {/* Contact Info */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Company Values</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {business.values.map((value) => (
-                        <div key={value} className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-[#0F7377]" />
-                          <span>{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="team" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Our Team</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {business.team.map((member, index) => (
-                        <div key={index} className="flex items-center gap-4">
-                          <Avatar className="w-12 h-12">
-                            <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h4 className="font-semibold">{member.name}</h4>
-                            <p className="text-sm text-gray-600">{member.role}</p>
-                            <p className="text-xs text-gray-500">{member.bio}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="milestones" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Company Milestones</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {business.milestones.map((milestone, index) => (
-                        <div key={index} className="flex gap-4">
-                          <div className="w-3 h-3 bg-[#0F7377] rounded-full mt-2 flex-shrink-0"></div>
-                          <div>
-                            <h4 className="font-semibold">{milestone.title}</h4>
-                            <p className="text-sm text-gray-600">{milestone.description}</p>
-                            <p className="text-xs text-gray-500">{new Date(milestone.date).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="contact" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Get in Touch</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold mb-2">Email</h4>
-                        <a 
-                          href={`mailto:${business.contactInfo.email}`}
-                          className="text-[#0F7377] hover:underline"
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4">Contact</h3>
+                    <div className="space-y-3">
+                      {page.websiteUrl && (
+                        <a
+                          href={page.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
                         >
-                          {business.contactInfo.email}
+                          <Globe className="h-4 w-4" />
+                          {(() => {
+                            try {
+                              return new URL(page.websiteUrl).hostname;
+                            } catch {
+                              return page.websiteUrl;
+                            }
+                          })()}
                         </a>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Phone</h4>
-                        <a 
-                          href={`tel:${business.contactInfo.phone}`}
-                          className="text-[#0F7377] hover:underline"
+                      )}
+                      {page.contactPhone && (
+                        <a
+                          href={`tel:${page.contactPhone}`}
+                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
-                          {business.contactInfo.phone}
+                          <Phone className="h-4 w-4" />
+                          {page.contactPhone}
                         </a>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Address</h4>
-                        <p className="text-gray-600">{business.contactInfo.address}</p>
-                      </div>
+                      )}
+                      {page.contactEmail && (
+                        <a
+                          href={`mailto:${page.contactEmail}`}
+                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          <Mail className="h-4 w-4" />
+                          {page.contactEmail}
+                        </a>
+                      )}
+                      {(page.primaryLocation || page.headquarterLocation) && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {page.headquarterLocation || page.primaryLocation}
+                        </div>
+                      )}
+                      {page.foundedYear && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          Founded {page.foundedYear}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+
+                {/* Social Links */}
+                {(page.socialFacebook ||
+                  page.socialTwitter ||
+                  page.socialLinkedin ||
+                  page.socialInstagram) && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <h3 className="font-semibold mb-4">Social Media</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {page.socialFacebook && (
+                          <a
+                            href={page.socialFacebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                          >
+                            <Facebook className="h-5 w-5 text-blue-600" />
+                          </a>
+                        )}
+                        {page.socialTwitter && (
+                          <a
+                            href={page.socialTwitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                          >
+                            <Twitter className="h-5 w-5 text-sky-500" />
+                          </a>
+                        )}
+                        {page.socialLinkedin && (
+                          <a
+                            href={page.socialLinkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                          >
+                            <Linkedin className="h-5 w-5 text-blue-700" />
+                          </a>
+                        )}
+                        {page.socialInstagram && (
+                          <a
+                            href={page.socialInstagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                          >
+                            <Instagram className="h-5 w-5 text-pink-600" />
+                          </a>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="about" className="mt-6">
+            <Card>
+              <CardContent className="pt-6 space-y-6">
+                {/* Full Description */}
+                {(page.longDescription || page.description) && (
+                  <div>
+                    <h3 className="font-semibold mb-2">
+                      About {page.businessTitle}
+                    </h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {page.longDescription || page.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Details Grid */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Company Details */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Company Details</h3>
+                    <dl className="space-y-3">
+                      {page.industry && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Industry
+                          </dt>
+                          <dd className="font-medium">{page.industry}</dd>
+                        </div>
+                      )}
+                      {page.companySize && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Company Size
+                          </dt>
+                          <dd className="font-medium">{page.companySize}</dd>
+                        </div>
+                      )}
+                      {page.teamSize && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Employees
+                          </dt>
+                          <dd className="font-medium">{page.teamSize}</dd>
+                        </div>
+                      )}
+                      {page.foundedYear && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Founded
+                          </dt>
+                          <dd className="font-medium">{page.foundedYear}</dd>
+                        </div>
+                      )}
+                      {page.specialties && page.specialties.length > 0 && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground mb-2">
+                            Specialties
+                          </dt>
+                          <dd className="flex flex-wrap gap-1">
+                            {page.specialties.map((specialty, index) => (
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {specialty}
+                              </Badge>
+                            ))}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  {/* Location & Contact */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Location & Contact</h3>
+                    <dl className="space-y-3">
+                      {page.headquarterLocation && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Headquarters
+                          </dt>
+                          <dd className="font-medium">
+                            {page.headquarterLocation}
+                          </dd>
+                        </div>
+                      )}
+                      {page.contactAddress && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Address
+                          </dt>
+                          <dd className="font-medium">{page.contactAddress}</dd>
+                        </div>
+                      )}
+                      {page.contactPhone && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Phone
+                          </dt>
+                          <dd className="font-medium">
+                            <a
+                              href={`tel:${page.contactPhone}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {page.contactPhone}
+                            </a>
+                          </dd>
+                        </div>
+                      )}
+                      {page.contactEmail && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Email
+                          </dt>
+                          <dd className="font-medium">
+                            <a
+                              href={`mailto:${page.contactEmail}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {page.contactEmail}
+                            </a>
+                          </dd>
+                        </div>
+                      )}
+                      {page.websiteUrl && (
+                        <div>
+                          <dt className="text-sm text-muted-foreground">
+                            Website
+                          </dt>
+                          <dd className="font-medium">
+                            <a
+                              href={page.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {page.websiteUrl}
+                            </a>
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="posts" className="mt-6">
+            {postsLoading && !posts.length ? (
+              <PostsSkeleton />
+            ) : posts.length > 0 ? (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <ApiPost key={post.id} post={post} />
+                ))}
+                {postsData?.hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setPostsPage((p) => p + 1)}
+                      disabled={postsFetching}
+                    >
+                      {postsFetching ? "Loading..." : "Load More"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-16 text-center">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="font-semibold mb-2">No posts yet</h3>
+                  <p className="text-muted-foreground">
+                    {page.businessTitle} hasn&apos;t posted anything yet.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Skeleton className="h-48 md:h-64 lg:h-80 w-full" />
+      <div className="container max-w-4xl mx-auto px-4">
+        <div className="relative -mt-16 md:-mt-20 mb-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <Skeleton className="h-32 w-32 md:h-40 md:w-40 rounded-xl" />
+            <div className="flex-1 pb-2 space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="flex gap-2 pb-2">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-28" />
+            </div>
           </div>
+        </div>
+        <div className="flex gap-6 mb-6">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-10 w-64 mb-6" />
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <Skeleton className="h-48 w-full" />
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+function PostsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-16 w-full mt-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }

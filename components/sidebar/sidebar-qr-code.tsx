@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { QrCode, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ export function SidebarQRCode({
   isCollapsed,
   openQRGenerator,
 }: SidebarQRCodeProps) {
+  const router = useRouter();
+
   const qrCodeData = useMemo(() => {
     if (!user) return null;
     return JSON.stringify({
@@ -80,7 +83,7 @@ export function SidebarQRCode({
         variant="outline"
         size="sm"
         className="w-full mt-2"
-        onClick={() => (window.location.href = "/connect/scan")}
+        onClick={() => router.push("/connect/scan")}
       >
         <QrCode className="w-3 h-3 mr-2" />
         Scan QR
@@ -90,7 +93,7 @@ export function SidebarQRCode({
         variant="outline"
         size="sm"
         className="w-full mt-2"
-        onClick={() => (window.location.href = "/profile")}
+        onClick={() => router.push("/profile")}
       >
         <CreditCard className="w-3 h-3 mr-2" />
         E-Card

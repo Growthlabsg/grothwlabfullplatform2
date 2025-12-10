@@ -36,10 +36,32 @@ export interface PostAttachment {
   postAttachmentDescription?: string;
 }
 
+// Page author info for posts/comments made by pages
+export interface PostPageAuthor {
+  id: number;
+  businessTitle: string;
+  email?: string;
+  avatarURL?: string;
+  verificationStatus: "pending" | "verified" | "rejected" | "suspended";
+  totalFollowers?: number;
+}
+
+// Page author info for optimistic updates (internal use)
+export interface PageAuthorInfo {
+  id: number;
+  businessTitle: string;
+  email: string;
+  avatarURL?: string;
+  verificationStatus: "pending" | "verified" | "rejected" | "suspended";
+}
+
 export interface Post {
   id: number;
   authorID: number;
   author: PostAuthor;
+  // Page context - present when post is made by a page
+  authorPageID?: number;
+  authorPage?: PostPageAuthor;
   postContent: string;
   likesCount: number;
   commentsCount: number;
@@ -62,6 +84,9 @@ export interface Comment {
   postID: number;
   commentAuthorID: number;
   author: PostAuthor;
+  // Page context - present when comment is made by a page
+  authorPageID?: number;
+  authorPage?: PostPageAuthor;
   commentContent: string;
   commentLikeCount: number;
   parentCommentID?: number;
@@ -94,11 +119,17 @@ export interface CreatePostRequest {
   postVisibility?: "public" | "private" | "connections";
   postHashTags?: string[];
   attachments?: Omit<PostAttachment, "id">[];
+  // Include to post as a business page
+  authorPageID?: number;
 }
 
 export interface CreateCommentRequest {
   commentContent: string;
   parentCommentID?: number;
+  // Include to comment as a business page
+  authorPageID?: number;
+  // For optimistic updates (not sent to server)
+  _pageInfo?: PageAuthorInfo;
 }
 
 export interface FileUploadResponse {
@@ -125,12 +156,22 @@ export const feedApi = baseApi.injectEndpoints({
         page?: number;
         limit?: number;
         feed_type?: "recommended" | "following" | "trending" | "recent";
+        pageId?: number | null; // Business page ID for page context
       }
     >({
-      query: ({ page = 1, limit = 10, feed_type = "recommended" }) => ({
-        url: "/v1/feed/",
-        params: { page, limit, feed_type },
-      }),
+      query: ({ page = 1, limit = 10, feed_type = "recommended", pageId }) => {
+        // Build headers - only include X-Page-ID if pageId is a valid number
+        const headers: Record<string, string> = {};
+        if (pageId != null && pageId > 0) {
+          headers["X-Page-ID"] = pageId.toString();
+        }
+
+        return {
+          url: "/v1/feed/",
+          params: { page, limit, feed_type },
+          headers: Object.keys(headers).length > 0 ? headers : undefined,
+        };
+      },
       providesTags: ["Feed"],
     }),
 
@@ -176,42 +217,75 @@ export const feedApi = baseApi.injectEndpoints({
     }),
 
     // Like/Unlike post with optimistic update
-    likePost: builder.mutation<{ message: string }, number>({
-      query: (postId) => ({
+    likePost: builder.mutation<
+      { message: string },
+      { postId: number; pageID?: number | null }
+    >({
+      query: ({ postId, pageID }) => ({
         url: `/v1/feed/posts/${postId}/like`,
         method: "POST",
+        // Include pageID in body if provided (to like as a business page)
+        body: pageID ? { pageID } : undefined,
       }),
-      async onQueryStarted(postId, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as any;
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
+        const state = getState();
         const patchResults: any[] = [];
 
-        // Try to update all possible feed query variations
-        const feedTypes = [
-          "recommended",
-          "following",
-          "trending",
-          "recent",
-        ] as const;
-        for (const feed_type of feedTypes) {
-          for (let page = 1; page <= 10; page++) {
+        // Get all cached getFeed queries from the state
+        const apiQueries = (state as any).api?.queries || {};
+        const cachedQueryArgs: Array<{
+          page: number;
+          limit: number;
+          feed_type: string;
+          pageId?: number | null;
+        }> = [];
+
+        // Find all getFeed queries in the cache
+        for (const [key, value] of Object.entries(apiQueries)) {
+          if (key.startsWith("getFeed(") && (value as any)?.data) {
             try {
-              const patchResult = dispatch(
-                feedApi.util.updateQueryData(
-                  "getFeed",
-                  { page, limit: 10, feed_type },
-                  (draft) => {
-                    const post = draft.posts.find((p) => p.id === postId);
-                    if (post) {
-                      post.isLiked = !post.isLiked;
-                      post.likesCount += post.isLiked ? 1 : -1;
-                    }
-                  }
-                )
-              );
-              patchResults.push(patchResult);
+              const argsMatch = key.match(/getFeed\((.*)\)/);
+              if (argsMatch && argsMatch[1]) {
+                const args = JSON.parse(argsMatch[1]);
+                cachedQueryArgs.push(args);
+              }
             } catch {
-              // Query doesn't exist, skip
+              // Skip if parsing fails
             }
+          }
+        }
+
+        // If no cached queries found, fall back to common patterns
+        if (cachedQueryArgs.length === 0) {
+          const feedTypes = [
+            "recommended",
+            "following",
+            "trending",
+            "recent",
+          ] as const;
+          const pageIds = [null, undefined];
+          for (const feed_type of feedTypes) {
+            for (const pageId of pageIds) {
+              cachedQueryArgs.push({ page: 1, limit: 10, feed_type, pageId });
+            }
+          }
+        }
+
+        // Update all cached feed queries
+        for (const args of cachedQueryArgs) {
+          try {
+            const patchResult = dispatch(
+              feedApi.util.updateQueryData("getFeed", args as any, (draft) => {
+                const post = draft.posts.find((p) => p.id === postId);
+                if (post) {
+                  post.isLiked = !post.isLiked;
+                  post.likesCount += post.isLiked ? 1 : -1;
+                }
+              })
+            );
+            patchResults.push(patchResult);
+          } catch {
+            // Query doesn't exist, skip
           }
         }
 
@@ -242,11 +316,15 @@ export const feedApi = baseApi.injectEndpoints({
       Comment,
       { postId: number; comment: CreateCommentRequest }
     >({
-      query: ({ postId, comment }) => ({
-        url: `/v1/feed/posts/${postId}/comments`,
-        method: "POST",
-        body: comment,
-      }),
+      query: ({ postId, comment }) => {
+        // Remove _pageInfo from the body (it's only for optimistic updates)
+        const { _pageInfo, ...commentBody } = comment;
+        return {
+          url: `/v1/feed/posts/${postId}/comments`,
+          method: "POST",
+          body: commentBody,
+        };
+      },
       async onQueryStarted(
         { postId, comment },
         { dispatch, queryFulfilled, getState }
@@ -283,13 +361,16 @@ export const feedApi = baseApi.injectEndpoints({
           isLiked: false,
           replies: [],
           isPending: true,
+          // Include page info if commenting as a page
+          authorPageID: comment.authorPageID,
+          authorPage: comment._pageInfo,
         };
 
         // Update comments cache
         const patchResult = dispatch(
           feedApi.util.updateQueryData(
             "getPostComments",
-            { postId, page: 1, limit: 20 },
+            { postId, page: 1, limit: 10 },
             (draft) => {
               if (comment.parentCommentID) {
                 // Find parent and add reply (1 level nesting only)
@@ -325,25 +406,57 @@ export const feedApi = baseApi.injectEndpoints({
 
         // Update post's comment count in feed
         const feedPatches: any[] = [];
-        const feedTypes = [
-          "recommended",
-          "following",
-          "trending",
-          "recent",
-        ] as const;
-        for (const feed_type of feedTypes) {
+
+        // Get all cached getFeed queries from the state
+        const apiQueries = (state as any).api?.queries || {};
+        const cachedQueryArgs: Array<{
+          page: number;
+          limit: number;
+          feed_type: string;
+          pageId?: number | null;
+        }> = [];
+
+        // Find all getFeed queries in the cache
+        for (const [key, value] of Object.entries(apiQueries)) {
+          if (key.startsWith("getFeed(") && (value as any)?.data) {
+            try {
+              const argsMatch = key.match(/getFeed\((.*)\)/);
+              if (argsMatch && argsMatch[1]) {
+                const args = JSON.parse(argsMatch[1]);
+                cachedQueryArgs.push(args);
+              }
+            } catch {
+              // Skip if parsing fails
+            }
+          }
+        }
+
+        // If no cached queries found, fall back to common patterns
+        if (cachedQueryArgs.length === 0) {
+          const feedTypes = [
+            "recommended",
+            "following",
+            "trending",
+            "recent",
+          ] as const;
+          const pageIds = [null, undefined];
+          for (const feed_type of feedTypes) {
+            for (const pageId of pageIds) {
+              cachedQueryArgs.push({ page: 1, limit: 10, feed_type, pageId });
+            }
+          }
+        }
+
+        // Update all cached feed queries
+        for (const args of cachedQueryArgs) {
           try {
             const patch = dispatch(
-              feedApi.util.updateQueryData(
-                "getFeed",
-                { page: 1, limit: 10, feed_type },
-                (draft) => {
-                  const post = draft.posts.find((p) => p.id === postId);
-                  if (post) {
-                    post.commentsCount += 1;
-                  }
+              feedApi.util.updateQueryData("getFeed", args as any, (draft) => {
+                const post = draft.posts.find((p) => p.id === postId);
+                if (post) {
+                  post.commentsCount += 1;
                 }
-              )
+              })
             );
             feedPatches.push(patch);
           } catch {
@@ -357,7 +470,7 @@ export const feedApi = baseApi.injectEndpoints({
           dispatch(
             feedApi.util.updateQueryData(
               "getPostComments",
-              { postId, page: 1, limit: 20 },
+              { postId, page: 1, limit: 10 },
               (draft) => {
                 const replaceInComments = (comments: Comment[]): boolean => {
                   for (let i = 0; i < comments.length; i++) {
@@ -495,11 +608,13 @@ export const feedApi = baseApi.injectEndpoints({
     // Like/Unlike comment with optimistic update
     likeComment: builder.mutation<
       { message: string },
-      { postId: number; commentId: number }
+      { postId: number; commentId: number; pageID?: number | null }
     >({
-      query: ({ commentId }) => ({
+      query: ({ commentId, pageID }) => ({
         url: `/v1/feed/comments/${commentId}/like`,
         method: "POST",
+        // Include pageID in body if provided (to like as a business page)
+        body: pageID ? { pageID } : undefined,
       }),
       async onQueryStarted(
         { postId, commentId },
@@ -508,7 +623,7 @@ export const feedApi = baseApi.injectEndpoints({
         const patchResult = dispatch(
           feedApi.util.updateQueryData(
             "getPostComments",
-            { postId, page: 1, limit: 20 },
+            { postId, page: 1, limit: 10 },
             (draft) => {
               const updateLike = (comments: Comment[]): boolean => {
                 for (const c of comments) {

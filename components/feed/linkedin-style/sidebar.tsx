@@ -1,137 +1,344 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Bookmark, Users, Award, TrendingUp, Calendar, Building2, Check, Plus, Eye, Clock, Star, Target, Activity, Globe, Zap } from "lucide-react"
-import { 
-  mockPeopleYouMayKnow, 
-  mockSkillsToEndorse, 
-  mockQuickStats, 
-  mockEvents, 
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Bookmark,
+  Users,
+  Award,
+  TrendingUp,
+  Calendar,
+  Building2,
+  Check,
+  Plus,
+  Eye,
+  Clock,
+  Star,
+  Target,
+  Activity,
+  Globe,
+  Zap,
+  Loader2,
+} from "lucide-react";
+import {
+  mockPeopleYouMayKnow,
+  mockSkillsToEndorse,
+  mockQuickStats,
+  mockEvents,
   mockGroups,
   mockPostAnalytics,
   mockContentRecommendations,
   mockNetworkingSuggestions,
   type LinkedInPerson,
-  type LinkedInSkill
-} from "@/lib/mock-linkedin-data"
-import { toast } from "sonner"
+  type LinkedInSkill,
+} from "@/lib/mock-linkedin-data";
+import { toast } from "sonner";
+import { usePageContext } from "@/contexts/page-context";
+import {
+  useGetUserStatsQuery,
+  useGetPageStatsQuery,
+  useSendConnectionRequestMutation,
+} from "@/lib/redux";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function FeedSidebar() {
-  const [people, setPeople] = useState<LinkedInPerson[]>(mockPeopleYouMayKnow)
-  const [skills, setSkills] = useState<LinkedInSkill[]>(mockSkillsToEndorse)
-  const [stats, setStats] = useState(mockQuickStats)
-  const [analytics, setAnalytics] = useState(mockPostAnalytics)
-  const [showAllPeople, setShowAllPeople] = useState(false)
-  const [showAllSkills, setShowAllSkills] = useState(false)
-  const [showAllRecommendations, setShowAllRecommendations] = useState(false)
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
+  const { activePageId, activePage, isOperatingAsPage } = usePageContext();
+  const router = useRouter();
 
-  const handleConnect = (personId: string) => {
-    setPeople(prev => prev.filter(p => p.id !== personId))
-    toast.success("Connection request sent!")
-  }
+  // Connection request mutation
+  const [sendConnectionRequest, { isLoading: isConnecting }] =
+    useSendConnectionRequestMutation();
 
-  const handleEndorse = (skillId: string) => {
-    setSkills(prev => prev.map(s => 
-      s.id === skillId ? { ...s, endorsed: true, lastEndorsed: new Date().toISOString() } : s
-    ))
-    toast.success("Skill endorsed!")
-  }
+  // Fetch user stats when operating as user
+  const { data: userStatsData, isLoading: isLoadingUserStats } =
+    useGetUserStatsQuery(undefined, {
+      skip: isOperatingAsPage,
+    });
+
+  // Fetch page stats when operating as page
+  const { data: pageStatsData, isLoading: isLoadingPageStats } =
+    useGetPageStatsQuery(activePageId!, {
+      skip: !isOperatingAsPage || !activePageId,
+    });
+
+  const [people, setPeople] = useState<LinkedInPerson[]>(mockPeopleYouMayKnow);
+  const [skills, setSkills] = useState<LinkedInSkill[]>(mockSkillsToEndorse);
+  const [showAllPeople, setShowAllPeople] = useState(false);
+  const [showAllSkills, setShowAllSkills] = useState(false);
+  const [showAllRecommendations, setShowAllRecommendations] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
+  const [connectingPersonId, setConnectingPersonId] = useState<string | null>(
+    null
+  );
+
+  const isLoadingStats = isOperatingAsPage
+    ? isLoadingPageStats
+    : isLoadingUserStats;
+
+  const handleConnect = async (personId: string) => {
+    try {
+      setConnectingPersonId(personId);
+      // For now using mock data, but ready for real API
+      // await sendConnectionRequest(Number(personId)).unwrap();
+      setPeople((prev) => prev.filter((p) => p.id !== personId));
+      toast.success("Connection request sent!");
+    } catch (error) {
+      toast.error("Failed to send connection request");
+    } finally {
+      setConnectingPersonId(null);
+    }
+  };
 
   const handleViewProfile = (personId: string) => {
-    setSelectedPerson(selectedPerson === personId ? null : personId)
-    toast.info(`Viewing ${people.find(p => p.id === personId)?.name}'s profile`)
-  }
+    // Navigate to the user's profile page
+    router.push(`/profile/${personId}`);
+  };
 
   const handleJoinEvent = (eventId: string) => {
-    toast.success("Joined event successfully!")
-  }
+    toast.success("Joined event successfully!");
+  };
 
   const handleJoinGroup = (groupId: string) => {
-    toast.success("Joined group successfully!")
-  }
+    toast.success("Joined group successfully!");
+  };
 
   const handleFollowRecommendation = (recommendationId: string) => {
-    toast.success("Content recommendation followed!")
-  }
+    toast.success("Content recommendation followed!");
+  };
 
   const getOnlineStatusColor = (status: string) => {
     switch (status) {
-      case "online": return "bg-green-500"
-      case "away": return "bg-yellow-500"
-      case "offline": return "bg-gray-400"
-      default: return "bg-gray-400"
+      case "online":
+        return "bg-green-500";
+      case "away":
+        return "bg-yellow-500";
+      case "offline":
+        return "bg-gray-400";
+      default:
+        return "bg-gray-400";
     }
-  }
+  };
 
   const getConnectionStrengthColor = (strength: number) => {
-    if (strength >= 4) return "text-green-600"
-    if (strength >= 3) return "text-blue-600"
-    if (strength >= 2) return "text-yellow-600"
-    return "text-gray-500"
-  }
+    if (strength >= 4) return "text-green-600";
+    if (strength >= 3) return "text-blue-600";
+    if (strength >= 2) return "text-yellow-600";
+    return "text-gray-500";
+  };
 
   const getSkillLevelColor = (level: string) => {
     switch (level) {
-      case "expert": return "text-red-600"
-      case "intermediate": return "text-blue-600"
-      case "beginner": return "text-green-600"
-      default: return "text-gray-600"
+      case "expert":
+        return "text-red-600";
+      case "intermediate":
+        return "text-blue-600";
+      case "beginner":
+        return "text-green-600";
+      default:
+        return "text-gray-600";
     }
-  }
+  };
 
-  const displayedPeople = showAllPeople ? people : people.slice(0, 3)
-  const displayedSkills = showAllSkills ? skills : skills.slice(0, 2)
-  const displayedRecommendations = showAllRecommendations ? mockContentRecommendations : mockContentRecommendations.slice(0, 2)
+  const displayedPeople = showAllPeople ? people : people.slice(0, 3);
+  const displayedSkills = showAllSkills ? skills : skills.slice(0, 2);
+  const displayedRecommendations = showAllRecommendations
+    ? mockContentRecommendations
+    : mockContentRecommendations.slice(0, 2);
 
   return (
     <div className="space-y-4 max-w-full overflow-hidden">
       {/* Profile Card */}
       <Card>
-        <div className="relative h-24 w-full bg-gradient-to-r from-primary/30 to-primary/10 rounded-t-lg">
-          <div className="absolute -bottom-10 left-4">
-            <Avatar className="h-20 w-20 border-4 border-background">
-              <AvatarImage src="/abstract-geometric-shapes.png" alt="User" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
+        {isLoadingStats ? (
+          // Skeleton loader for profile card
+          <div>
+            <Skeleton className="h-24 w-full rounded-t-lg" />
+            <CardContent className="pt-12 pb-4">
+              <div className="absolute -mt-16 ml-0">
+                <Skeleton className="h-20 w-20 rounded-full" />
+              </div>
+              <div className="space-y-3 mt-6">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            </CardContent>
           </div>
-        </div>
-        <CardContent className="pt-12 pb-4">
-          <div className="space-y-3">
-            <div>
-              <h3 className="font-semibold text-lg">John Doe</h3>
-              <p className="text-sm text-muted-foreground">Founder & CEO at StartupName</p>
+        ) : (
+          <>
+            <div className="relative h-24 w-full bg-gradient-to-r from-primary/30 to-primary/10 rounded-t-lg">
+              {isOperatingAsPage && pageStatsData?.page?.coverImageURL ? (
+                <img
+                  src={pageStatsData.page.coverImageURL}
+                  alt="Cover"
+                  className="w-full h-full object-cover rounded-t-lg"
+                />
+              ) : userStatsData?.user?.coverImageURL ? (
+                <img
+                  src={userStatsData.user.coverImageURL}
+                  alt="Cover"
+                  className="w-full h-full object-cover rounded-t-lg"
+                />
+              ) : null}
+              <div className="absolute -bottom-10 left-4">
+                <Avatar className="h-20 w-20 border-4 border-background">
+                  <AvatarImage
+                    src={
+                      isOperatingAsPage
+                        ? pageStatsData?.page?.avatarURL ||
+                          activePage?.avatarURL
+                        : userStatsData?.user?.avatarURL ||
+                          "/abstract-geometric-shapes.png"
+                    }
+                    alt={isOperatingAsPage ? activePage?.businessTitle : "User"}
+                  />
+                  <AvatarFallback>
+                    {isOperatingAsPage
+                      ? activePage?.businessTitle
+                          ?.substring(0, 2)
+                          .toUpperCase() || "BP"
+                      : userStatsData?.user?.firstName?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </div>
-            <div className="pt-2 border-t">
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">Profile views</span>
-                <span className="font-medium text-primary">{stats.profileViews}</span>
+            <CardContent className="pt-12 pb-4">
+              <div className="space-y-3">
+                <div>
+                  {isOperatingAsPage ? (
+                    <Link
+                      href={`/business/${activePageId}`}
+                      className="hover:underline"
+                    >
+                      <h3 className="font-semibold text-lg">
+                        {pageStatsData?.page?.businessTitle ||
+                          activePage?.businessTitle ||
+                          "Business Page"}
+                      </h3>
+                    </Link>
+                  ) : (
+                    <Link href="/profile" className="hover:underline">
+                      <h3 className="font-semibold text-lg">
+                        {userStatsData?.user
+                          ? `${userStatsData.user.firstName} ${userStatsData.user.lastName}`
+                          : "Your Name"}
+                      </h3>
+                    </Link>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {isOperatingAsPage
+                      ? pageStatsData?.page?.headline || "Business Page"
+                      : userStatsData?.user?.headline || "Add a headline"}
+                  </p>
+                </div>
+                <div className="pt-2 border-t">
+                  {isOperatingAsPage ? (
+                    // Page stats
+                    <>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Page views
+                        </span>
+                        <span className="font-medium text-primary">
+                          {pageStatsData?.stats?.pageViews || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Post impressions
+                        </span>
+                        <span className="font-medium text-primary">
+                          {pageStatsData?.stats?.postImpressions || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Search appearances
+                        </span>
+                        <span className="font-medium text-primary">
+                          {pageStatsData?.stats?.searchAppearances || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">Followers</span>
+                        <span className="font-medium text-primary">
+                          {pageStatsData?.stats?.totalFollowers || 0}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    // User stats
+                    <>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Profile views
+                        </span>
+                        <span className="font-medium text-primary">
+                          {userStatsData?.stats?.profileViews || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Post impressions
+                        </span>
+                        <span className="font-medium text-primary">
+                          {userStatsData?.stats?.postImpressions || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Search appearances
+                        </span>
+                        <span className="font-medium text-primary">
+                          {userStatsData?.stats?.searchAppearances || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-muted-foreground">
+                          Connections
+                        </span>
+                        <span className="font-medium text-primary">
+                          {userStatsData?.stats?.totalConnections || 0}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    <Bookmark className="h-4 w-4 inline-block mr-2" />
+                    <span>My items</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">Post impressions</span>
-                <span className="font-medium text-primary">{stats.postImpressions}</span>
-              </div>
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">Search appearances</span>
-                <span className="font-medium text-primary">{stats.searchAppearances}</span>
-              </div>
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-muted-foreground">Connections</span>
-                <span className="font-medium text-primary">{stats.connections}</span>
-              </div>
-            </div>
-            <div className="pt-2 border-t">
-              <div className="text-sm text-muted-foreground">
-                <Bookmark className="h-4 w-4 inline-block mr-2" />
-                <span>My items</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
+            </CardContent>
+          </>
+        )}
       </Card>
 
       {/* Enhanced LinkedIn-style Quick Stats */}
@@ -141,133 +348,220 @@ export function FeedSidebar() {
             <TrendingUp className="h-4 w-4 text-blue-600" />
             Quick Stats
           </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Total Posts</span>
-              <span className="font-semibold text-blue-600">{stats.totalPosts}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Total Likes</span>
-              <span className="font-semibold text-green-600">{stats.totalLikes}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Total Comments</span>
-              <span className="font-semibold text-purple-600">{stats.totalComments}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Verified Users</span>
-              <span className="font-semibold text-orange-600">{stats.verifiedUsers}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Weekly Growth</span>
-              <span className="font-semibold text-green-600">+{stats.weeklyGrowth}%</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Engagement Rate</span>
-              <span className="font-semibold text-blue-600">{stats.engagementRate}%</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Enhanced LinkedIn-style People You May Know */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Users className="h-4 w-4 text-blue-600" />
-            People you may know
-          </h3>
-          <div className="space-y-3">
-            {displayedPeople.map((person) => (
-              <div key={person.id} className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="relative flex-shrink-0">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={person.avatar} alt={person.name} />
-                      <AvatarFallback>{person.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getOnlineStatusColor(person.onlineStatus)}`}></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{person.name}</p>
-                      {person.verified && <Check className="h-3 w-3 text-blue-600 flex-shrink-0" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mb-1">{person.role} at {person.company}</p>
-                    <p className="text-xs text-blue-600 mb-2">{person.mutualConnections} mutual connections</p>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`text-xs flex items-center gap-1 ${getConnectionStrengthColor(person.connectionStrength)}`}>
-                        <Target className="h-3 w-3" />
-                        {person.connectionStrength}/5 strength
-                      </span>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {person.lastActive}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 mb-2">
-                      {person.skills.slice(0, 2).map((skill, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                    {selectedPerson === person.id && (
-                      <div className="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
-                        <p className="text-xs text-blue-800 font-medium mb-1">Shared Interests:</p>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {person.sharedInterests.map((interest, index) => (
-                            <Badge key={index} variant="outline" className="text-xs bg-blue-100 text-blue-800">
-                              {interest}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-xs text-blue-700 flex items-center gap-1">
-                          <Activity className="h-3 w-3" />
-                          {person.recentActivity}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 flex-shrink-0 ml-auto">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-xs h-7 px-2 whitespace-nowrap min-w-[60px]"
-                      onClick={() => handleConnect(person.id)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Connect
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-xs h-7 px-2 whitespace-nowrap min-w-[60px]"
-                      onClick={() => handleViewProfile(person.id)}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      {selectedPerson === person.id ? "Hide" : "View"}
-                    </Button>
-                  </div>
+          {isLoadingStats ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center justify-between py-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-12" />
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  Total Posts
+                </span>
+                <span className="font-semibold text-blue-600">
+                  {isOperatingAsPage
+                    ? pageStatsData?.stats?.totalPosts || 0
+                    : userStatsData?.stats?.totalPosts || 0}
+                </span>
               </div>
-            ))}
-          </div>
-          {people.length > 3 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full mt-3"
-              onClick={() => setShowAllPeople(!showAllPeople)}
-            >
-              {showAllPeople ? "Show Less" : `Show ${people.length - 3} More`}
-            </Button>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  Total Likes
+                </span>
+                <span className="font-semibold text-green-600">
+                  {isOperatingAsPage
+                    ? pageStatsData?.stats?.totalLikes || 0
+                    : userStatsData?.stats?.totalLikes || 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  Total Comments
+                </span>
+                <span className="font-semibold text-purple-600">
+                  {isOperatingAsPage
+                    ? pageStatsData?.stats?.totalComments || 0
+                    : userStatsData?.stats?.totalComments || 0}
+                </span>
+              </div>
+              {!isOperatingAsPage && (
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm text-muted-foreground">
+                    Verified Connections
+                  </span>
+                  <span className="font-semibold text-orange-600">
+                    {userStatsData?.stats?.verifiedConnections || 0}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  Weekly Growth
+                </span>
+                <span className="font-semibold text-green-600">
+                  +
+                  {isOperatingAsPage
+                    ? pageStatsData?.stats?.weeklyGrowth || 0
+                    : userStatsData?.stats?.weeklyGrowth || 0}
+                  %
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  Engagement Rate
+                </span>
+                <span className="font-semibold text-blue-600">
+                  {isOperatingAsPage
+                    ? pageStatsData?.stats?.engagementRate || 0
+                    : userStatsData?.stats?.engagementRate || 0}
+                  %
+                </span>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Enhanced LinkedIn-style People You May Know - Only show for users, not pages */}
+      {!isOperatingAsPage && (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              People you may know
+            </h3>
+            {isLoadingStats ? (
+              // Skeleton loader for people cards
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-36" />
+                        <Skeleton className="h-3 w-24" />
+                        <div className="flex gap-1">
+                          <Skeleton className="h-5 w-16 rounded" />
+                          <Skeleton className="h-5 w-16 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Skeleton className="h-7 flex-1 rounded" />
+                      <Skeleton className="h-7 flex-1 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {displayedPeople.map((person) => (
+                  <div key={person.id} className="p-3 bg-gray-50 rounded-lg">
+                    {/* Person Info - Clickable Avatar and Name */}
+                    <div className="flex items-start gap-3">
+                      <Link
+                        href={`/profile/${person.id}`}
+                        className="relative flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={person.avatar} alt={person.name} />
+                          <AvatarFallback>
+                            {person.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getOnlineStatusColor(
+                            person.onlineStatus
+                          )}`}
+                        ></div>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Link
+                            href={`/profile/${person.id}`}
+                            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline cursor-pointer"
+                          >
+                            {person.name}
+                          </Link>
+                          {person.verified && (
+                            <Check className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mb-1">
+                          {person.role} at {person.company}
+                        </p>
+                        <p className="text-xs text-blue-600 mb-2">
+                          {person.mutualConnections} mutual connections
+                        </p>
+                        <div className="flex gap-1 flex-wrap">
+                          {person.skills.slice(0, 2).map((skill, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons - At the bottom in flex layout */}
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs h-8"
+                        onClick={() => handleConnect(person.id)}
+                        disabled={connectingPersonId === person.id}
+                      >
+                        {connectingPersonId === person.id ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <Plus className="h-3 w-3 mr-1" />
+                        )}
+                        Connect
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1 text-xs h-8"
+                        onClick={() => handleViewProfile(person.id)}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Profile
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!isLoadingStats && people.length > 3 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-3"
+                onClick={() => setShowAllPeople(!showAllPeople)}
+              >
+                {showAllPeople ? "Show Less" : `Show ${people.length - 3} More`}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Enhanced LinkedIn-style Skills to Endorse */}
-      <Card>
+      {/* <Card>
         <CardContent className="p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Award className="h-4 w-4 text-orange-600" />
@@ -278,11 +572,22 @@ export function FeedSidebar() {
               <div key={skill.id} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 mb-1">{skill.personName}</p>
-                    <p className="text-xs text-muted-foreground mb-2">{skill.skill}</p>
+                    <p className="text-sm font-medium text-gray-900 mb-1">
+                      {skill.personName}
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {skill.skill}
+                    </p>
                     <div className="flex items-center gap-2 mb-2">
-                      <p className="text-xs text-blue-600">{skill.mutualConnections} mutual connections</p>
-                      <Badge variant="outline" className={`text-xs ${getSkillLevelColor(skill.skillLevel)}`}>
+                      <p className="text-xs text-blue-600">
+                        {skill.mutualConnections} mutual connections
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${getSkillLevelColor(
+                          skill.skillLevel
+                        )}`}
+                      >
                         {skill.skillLevel}
                       </Badge>
                     </div>
@@ -297,14 +602,20 @@ export function FeedSidebar() {
                       </span>
                     </div>
                   </div>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant={skill.endorsed ? "default" : "outline"}
-                    className={`text-xs h-7 px-2 flex-shrink-0 whitespace-nowrap min-w-[70px] ${skill.endorsed ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                    className={`text-xs h-7 px-2 flex-shrink-0 whitespace-nowrap min-w-[70px] ${
+                      skill.endorsed ? "bg-green-600 hover:bg-green-700" : ""
+                    }`}
                     onClick={() => handleEndorse(skill.id)}
                     disabled={skill.endorsed}
                   >
-                    {skill.endorsed ? <Check className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                    {skill.endorsed ? (
+                      <Check className="h-3 w-3 mr-1" />
+                    ) : (
+                      <Plus className="h-3 w-3 mr-1" />
+                    )}
                     {skill.endorsed ? "Endorsed" : "Endorse"}
                   </Button>
                 </div>
@@ -312,9 +623,9 @@ export function FeedSidebar() {
             ))}
           </div>
           {skills.length > 2 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="w-full mt-2"
               onClick={() => setShowAllSkills(!showAllSkills)}
             >
@@ -322,10 +633,10 @@ export function FeedSidebar() {
             </Button>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Content Recommendations */}
-      <Card>
+      {/* <Card>
         <CardContent className="p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Zap className="h-4 w-4 text-yellow-600" />
@@ -336,13 +647,23 @@ export function FeedSidebar() {
               <div key={rec.id} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-start gap-2">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    {rec.type === "article" && <Globe className="h-4 w-4 text-blue-600" />}
-                    {rec.type === "video" && <Eye className="h-4 w-4 text-red-600" />}
-                    {rec.type === "podcast" && <Activity className="h-4 w-4 text-purple-600" />}
+                    {rec.type === "article" && (
+                      <Globe className="h-4 w-4 text-blue-600" />
+                    )}
+                    {rec.type === "video" && (
+                      <Eye className="h-4 w-4 text-red-600" />
+                    )}
+                    {rec.type === "podcast" && (
+                      <Activity className="h-4 w-4 text-purple-600" />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium text-gray-900">{rec.title}</h4>
-                    <p className="text-xs text-muted-foreground">{rec.author}</p>
+                    <h4 className="text-sm font-medium text-gray-900">
+                      {rec.title}
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      {rec.author}
+                    </p>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-xs text-blue-600">
                         {rec.type === "article" ? rec.readTime : rec.duration}
@@ -350,14 +671,16 @@ export function FeedSidebar() {
                       <Badge variant="outline" className="text-xs">
                         {rec.category}
                       </Badge>
-                      <span className="text-xs text-green-600">{rec.relevance}% match</span>
+                      <span className="text-xs text-green-600">
+                        {rec.relevance}% match
+                      </span>
                     </div>
                     <p className="text-xs text-gray-600 mb-2">{rec.reason}</p>
                   </div>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="text-xs h-6 px-2 w-full min-w-0"
                   onClick={() => handleFollowRecommendation(rec.id)}
                 >
@@ -367,20 +690,22 @@ export function FeedSidebar() {
             ))}
           </div>
           {mockContentRecommendations.length > 2 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="w-full mt-3"
               onClick={() => setShowAllRecommendations(!showAllRecommendations)}
             >
-              {showAllRecommendations ? "Show Less" : `Show ${mockContentRecommendations.length - 2} More`}
+              {showAllRecommendations
+                ? "Show Less"
+                : `Show ${mockContentRecommendations.length - 2} More`}
             </Button>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Enhanced Recent Events */}
-      <Card>
+      {/* <Card>
         <CardContent className="p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-blue-600" />
@@ -390,24 +715,45 @@ export function FeedSidebar() {
             {mockEvents.map((event) => (
               <div key={event.id} className="flex items-start gap-3">
                 <div className="bg-primary/10 text-primary rounded-md p-2 flex flex-col items-center justify-center min-w-[48px]">
-                  <span className="text-xs font-medium">{event.date === "Tomorrow" ? "TOM" : event.date.split(' ')[0].toUpperCase()}</span>
-                  <span className="text-lg font-bold">{event.date === "Tomorrow" ? "24" : event.date.split(' ')[1]}</span>
+                  <span className="text-xs font-medium">
+                    {event.date === "Tomorrow"
+                      ? "TOM"
+                      : event.date?.split(" ")[0]?.toUpperCase() || ""}
+                  </span>
+                  <span className="text-lg font-bold">
+                    {event.date === "Tomorrow"
+                      ? "24"
+                      : event.date?.split(" ")[1] || ""}
+                  </span>
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{event.title}</h4>
-                  <p className="text-xs text-muted-foreground">{event.time} • {event.location}</p>
-                  <p className="text-xs text-blue-600">{event.attendees} attending</p>
+                  <p className="text-xs text-muted-foreground">
+                    {event.time} • {event.location}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {event.attendees} attending
+                  </p>
                   <div className="flex items-center gap-1 mt-1">
-                    <Badge variant="outline" className="text-xs bg-secondary/10 text-secondary-foreground">
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-secondary/10 text-secondary-foreground"
+                    >
                       {event.category}
                     </Badge>
                     {event.featured && (
-                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-yellow-100 text-yellow-800"
+                      >
                         Featured
                       </Badge>
                     )}
                     {event.virtual && (
-                      <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-purple-100 text-purple-800"
+                      >
                         Virtual
                       </Badge>
                     )}
@@ -422,9 +768,9 @@ export function FeedSidebar() {
                       {event.price}
                     </span>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="mt-2 text-xs h-6 px-2 min-w-[50px]"
                     onClick={() => handleJoinEvent(event.id)}
                   >
@@ -438,10 +784,10 @@ export function FeedSidebar() {
             View all events
           </Button>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Enhanced Groups */}
-      <Card>
+      {/* <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold flex items-center gap-2">
@@ -457,26 +803,35 @@ export function FeedSidebar() {
               <div key={group.id} className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={group.avatar} alt={group.name} />
-                  <AvatarFallback>{group.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  <AvatarFallback>
+                    {group.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <h4 className="text-sm font-medium">{group.name}</h4>
-                  <p className="text-xs text-muted-foreground">{group.members.toLocaleString()} members</p>
-                                      <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-blue-600 flex items-center gap-1">
-                        <Activity className="h-3 w-3" />
-                        {group.activeMembers} active
-                      </span>
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
-                        <Globe className="h-3 w-3" />
-                        {group.privacy}
-                      </span>
-                    </div>
-                  <p className="text-xs text-gray-600 mt-1">{group.recentActivity}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {group.members.toLocaleString()} members
+                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs text-blue-600 flex items-center gap-1">
+                      <Activity className="h-3 w-3" />
+                      {group.activeMembers} active
+                    </span>
+                    <span className="text-xs text-gray-600 flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      {group.privacy}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {group.recentActivity}
+                  </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="text-xs h-6 px-2 min-w-[50px] flex-shrink-0"
                   onClick={() => handleJoinGroup(group.id)}
                 >
@@ -489,11 +844,11 @@ export function FeedSidebar() {
             See all groups
           </Button>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
-  )
+  );
 }
 
-export const LinkedInStyleSidebar = FeedSidebar
+export const LinkedInStyleSidebar = FeedSidebar;
 
-export const Sidebar = FeedSidebar
+export const Sidebar = FeedSidebar;

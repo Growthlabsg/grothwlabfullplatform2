@@ -44,7 +44,11 @@ const baseQueryWithReauth: BaseQueryFn<
         headers.set("Authorization", `Bearer ${token}`);
       }
 
-      headers.set("Content-Type", "application/json");
+      // Only set Content-Type if not already set (preserve endpoint-specific headers)
+      if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
       return headers;
     },
   })(args, api, extraOptions);
@@ -136,7 +140,19 @@ export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
   endpoints: () => ({}),
-  tagTypes: ["User", "Auth", "Feed", "Post", "Comments"],
+  tagTypes: [
+    "User",
+    "Auth",
+    "Feed",
+    "Post",
+    "Comments",
+    "Pages",
+    "Page",
+    "PageMembers",
+    "PricingTiers",
+    "OfficeLocations",
+    "Milestones",
+  ],
 });
 
 // Export the base API hooks

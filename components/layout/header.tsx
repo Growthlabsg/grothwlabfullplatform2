@@ -10,6 +10,7 @@ import { useNotifications } from "@/contexts/notification-context";
 import Image from "next/image";
 import { PersistentQRButton } from "@/components/qr-code/persistent-qr-button";
 import { SimpleThemeToggle } from "@/components/theme-toggle";
+import { ContextSwitcher } from "../feed/context-switcher";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -222,7 +223,7 @@ export function Header({ toggleSidebar, isMobile }: HeaderProps) {
             // >
             //   <Link href="/">Home</Link>
             // </Button>
-            <></>
+            <ContextSwitcher />
           )}
         </div>
       </div>

@@ -1,19 +1,29 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useToast } from "@/components/ui/use-toast"
-import { useCommunicationActions } from "@/hooks/use-communication-actions"
-import { GlobalCommunicationButton } from "@/components/communication/global-communication-button"
-import { ConnectionStatus } from "@/components/communication/connection-status"
-import { ArrowLeft, UserPlus, MessageSquare, Share2, Check, Loader2 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
-import { connectionService } from "@/lib/connection-service"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft,
+  UserPlus,
+  MessageSquare,
+  Share2,
+  Check,
+  Loader2,
+} from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 // Mock user data
 const MOCK_USERS = {
@@ -50,25 +60,23 @@ const MOCK_USERS = {
     isConnected: false,
     isPending: true,
   },
-}
+};
 
 export default function ConnectPage() {
-  const params = useParams()
-  const userId = params.userId as string
-  const router = useRouter()
-  const { toast } = useToast()
-  const { user: currentUser } = useAuth()
-  const { handleConnect, handleMessage } = useCommunicationActions()
+  const params = useParams();
+  const userId = params.userId as string;
+  const router = useRouter();
+  const { user: currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(false)
-  const [userData, setUserData] = useState<any>(null)
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         // In a real app, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Check if user exists in our mock data
         const user = MOCK_USERS[userId as keyof typeof MOCK_USERS] || {
@@ -81,60 +89,53 @@ export default function ConnectPage() {
           mutualConnections: Math.floor(Math.random() * 10),
           isConnected: false,
           isPending: false,
-        }
+        };
 
-        setUserData(user)
-        setLoading(false)
+        setUserData(user);
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching user data:", error)
-        toast({
-          title: "Error",
-          description: "Could not load user information. Please try again.",
-          variant: "destructive",
-        })
-        setLoading(false)
+        console.error("Error fetching user data:", error);
+        toast.error("Could not load user information. Please try again.");
+        setLoading(false);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [userId, toast])
+    fetchUserData();
+  }, [userId]);
 
   const handleConnectClick = async () => {
-    if (!currentUser || !userData) return
+    if (!currentUser || !userData) return;
 
-    setConnecting(true)
+    setConnecting(true);
 
     try {
       // In a real app, this would send an actual connection request
-      await connectionService.sendConnectionRequest(currentUser.id, userData.id)
+      // await connectionService.sendConnectionRequest(currentUser.id, userData.id)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setUserData((prev: any) => ({
         ...prev,
         isPending: true,
         isConnected: false,
-      }))
+      }));
 
       // Connection request sent successfully
-      toast({
-        title: "Connection Request Sent",
-        description: `Your connection request has been sent to ${userData.name}. You can chat once they accept your request.`,
-      })
+      toast.success(
+        `Your connection request has been sent to ${userData.name}`
+      );
     } catch (error) {
-      console.error("Error sending connection request:", error)
-      toast({
-        title: "Error",
-        description: "Could not send connection request. Please try again.",
-        variant: "destructive",
-      })
+      console.error("Error sending connection request:", error);
+      toast.error("Could not send connection request. Please try again.");
     } finally {
-      setConnecting(false)
+      setConnecting(false);
     }
-  }
+  };
 
   const handleMessageClick = () => {
-    if (!userData) return
-    handleMessage(userData)
-  }
+    if (!userData) return;
+    // Navigate to messages or open messaging panel
+    router.push(`/messages?user=${userData.id}`);
+  };
 
   const handleShare = () => {
     // In a real app, this would open a share dialog
@@ -143,16 +144,13 @@ export default function ConnectPage() {
         title: `Connect with ${userData?.name} on GrowthLab`,
         text: `Check out ${userData?.name}'s profile on GrowthLab!`,
         url: window.location.href,
-      })
+      });
     } else {
       // Fallback for browsers that don't support the Web Share API
-      navigator.clipboard.writeText(window.location.href)
-      toast({
-        title: "Link copied!",
-        description: "Profile link copied to clipboard.",
-      })
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Profile link copied to clipboard!");
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -175,7 +173,7 @@ export default function ConnectPage() {
           </CardFooter>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!userData) {
@@ -184,7 +182,9 @@ export default function ConnectPage() {
         <Card>
           <CardHeader>
             <CardTitle>User Not Found</CardTitle>
-            <CardDescription>The user you're looking for doesn't exist or has been removed.</CardDescription>
+            <CardDescription>
+              The user you're looking for doesn't exist or has been removed.
+            </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center">
             <Button onClick={() => router.back()}>
@@ -194,7 +194,7 @@ export default function ConnectPage() {
           </CardFooter>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -212,7 +212,10 @@ export default function ConnectPage() {
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={userData.avatar || "/placeholder.svg"} alt={userData.name} />
+            <AvatarImage
+              src={userData.avatar || "/placeholder.svg"}
+              alt={userData.name}
+            />
             <AvatarFallback className="text-2xl">
               {userData.name
                 .split(" ")
@@ -238,7 +241,23 @@ export default function ConnectPage() {
             <Badge variant="outline">Startup</Badge>
             <Badge variant="outline">Technology</Badge>
             <Badge variant="outline">Entrepreneurship</Badge>
-            <ConnectionStatus user={userData} />
+            {userData.isConnected && (
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Connected
+              </Badge>
+            )}
+            {userData.isPending && (
+              <Badge
+                variant="secondary"
+                className="bg-yellow-100 text-yellow-800"
+              >
+                Pending
+              </Badge>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex justify-center space-x-2">
@@ -252,33 +271,29 @@ export default function ConnectPage() {
               <UserPlus className="mr-2 h-4 w-4" />
               Pending
             </Button>
+          ) : connecting ? (
+            <Button disabled>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Connecting...
+            </Button>
           ) : (
-            connecting ? (
-              <Button disabled>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
-              </Button>
-            ) : (
-              <GlobalCommunicationButton
-                user={userData}
-                variant="connect"
-                onClick={handleConnectClick}
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Connect
-              </GlobalCommunicationButton>
-            )
+            <Button
+              onClick={handleConnectClick}
+              className="bg-[#0F7377] hover:bg-[#0F7377]/90"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Connect
+            </Button>
           )}
 
-          <GlobalCommunicationButton
-            user={userData}
-            variant="message"
-            className="bg-transparent hover:bg-gray-100 border border-gray-300"
+          <Button
+            variant="outline"
+            onClick={handleMessageClick}
             disabled={!userData.isConnected}
           >
             <MessageSquare className="mr-2 h-4 w-4" />
             {userData.isConnected ? "Message" : "Connect First"}
-          </GlobalCommunicationButton>
+          </Button>
 
           <Button variant="ghost" size="icon" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
@@ -294,5 +309,5 @@ export default function ConnectPage() {
         </Button>
       </div>
     </div>
-  )
+  );
 }
