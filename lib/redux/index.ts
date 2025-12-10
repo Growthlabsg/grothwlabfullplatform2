@@ -37,6 +37,10 @@ export {
   useRemovePostAttachmentMutation,
   useSavePostMutation,
   useReportPostMutation,
+  useWithdrawReportMutation,
+  useRepostPostMutation,
+  useDeleteCommentMutation,
+  useGetSavedPostsQuery,
   useLikeCommentMutation,
 } from "./feedApi";
 
@@ -74,7 +78,14 @@ export {
   useGetPageAnalyticsQuery,
   useToggleFollowUserMutation,
   useSendConnectionRequestMutation,
+  useCancelConnectionRequestMutation,
+  useAcceptConnectionRequestMutation,
+  useRejectConnectionRequestMutation,
+  useGetConnectionRecommendationsQuery,
 } from "./pagesApi";
+
+// Export types from pagesApi
+export type { ConnectionRecommendation, MutualConnection } from "./pagesApi";
 
 // Auth slice
 export { default as authReducer } from "./authSlice";

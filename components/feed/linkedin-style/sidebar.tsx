@@ -22,10 +22,9 @@ import {
   Activity,
   Globe,
   Zap,
-  Loader2,
+  X,
 } from "lucide-react";
 import {
-  mockPeopleYouMayKnow,
   mockSkillsToEndorse,
   mockQuickStats,
   mockEvents,
@@ -33,7 +32,6 @@ import {
   mockPostAnalytics,
   mockContentRecommendations,
   mockNetworkingSuggestions,
-  type LinkedInPerson,
   type LinkedInSkill,
 } from "@/lib/mock-linkedin-data";
 import { toast } from "sonner";
@@ -42,17 +40,21 @@ import {
   useGetUserStatsQuery,
   useGetPageStatsQuery,
   useSendConnectionRequestMutation,
+  useCancelConnectionRequestMutation,
+  useGetConnectionRecommendationsQuery,
+  type ConnectionRecommendation,
 } from "@/lib/redux";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { pluralize } from "@/lib/utils";
 
 export function FeedSidebar() {
   const { activePageId, activePage, isOperatingAsPage } = usePageContext();
   const router = useRouter();
 
-  // Connection request mutation
-  const [sendConnectionRequest, { isLoading: isConnecting }] =
-    useSendConnectionRequestMutation();
+  // Connection request mutations
+  const [sendConnectionRequest] = useSendConnectionRequestMutation();
+  const [cancelConnectionRequest] = useCancelConnectionRequestMutation();
 
   // Fetch user stats when operating as user
   const { data: userStatsData, isLoading: isLoadingUserStats } =
@@ -66,35 +68,57 @@ export function FeedSidebar() {
       skip: !isOperatingAsPage || !activePageId,
     });
 
-  const [people, setPeople] = useState<LinkedInPerson[]>(mockPeopleYouMayKnow);
+  // Fetch connection recommendations (only for users, not pages)
+  const { data: recommendations, isLoading: isLoadingRecommendations } =
+    useGetConnectionRecommendationsQuery(
+      { recommendationType: "all", limit: 10 },
+      { skip: isOperatingAsPage }
+    );
+
   const [skills, setSkills] = useState<LinkedInSkill[]>(mockSkillsToEndorse);
   const [showAllPeople, setShowAllPeople] = useState(false);
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showAllRecommendations, setShowAllRecommendations] = useState(false);
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
-  const [connectingPersonId, setConnectingPersonId] = useState<string | null>(
-    null
-  );
+  const [dismissedIds, setDismissedIds] = useState<number[]>([]);
+  // Track pending connection requests (optimistic UI)
+  const [pendingRequestIds, setPendingRequestIds] = useState<number[]>([]);
 
   const isLoadingStats = isOperatingAsPage
     ? isLoadingPageStats
     : isLoadingUserStats;
 
-  const handleConnect = async (personId: string) => {
+  // Filter out dismissed recommendations
+  const filteredRecommendations =
+    recommendations?.filter((rec) => !dismissedIds.includes(rec.id)) || [];
+
+  const displayedPeople = showAllPeople
+    ? filteredRecommendations
+    : filteredRecommendations.slice(0, 3);
+
+  const handleConnect = async (personId: number) => {
+    // Optimistic update - immediately show as pending
+    setPendingRequestIds((prev) => [...prev, personId]);
+    toast.success("Connection request sent!");
+
     try {
-      setConnectingPersonId(personId);
-      // For now using mock data, but ready for real API
-      // await sendConnectionRequest(Number(personId)).unwrap();
-      setPeople((prev) => prev.filter((p) => p.id !== personId));
-      toast.success("Connection request sent!");
-    } catch (error) {
-      toast.error("Failed to send connection request");
-    } finally {
-      setConnectingPersonId(null);
+      await sendConnectionRequest({
+        connectionRequestReceiverID: personId,
+      }).unwrap();
+      // Keep the user in the list with "Pending" state
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setPendingRequestIds((prev) => prev.filter((id) => id !== personId));
+      const message =
+        error?.data?.detail || "Failed to send connection request";
+      toast.error(message);
     }
   };
 
-  const handleViewProfile = (personId: string) => {
+  const handleDismiss = (personId: number) => {
+    setDismissedIds((prev) => [...prev, personId]);
+  };
+
+  const handleViewProfile = (personId: number) => {
     // Navigate to the user's profile page
     router.push(`/profile/${personId}`);
   };
@@ -144,9 +168,8 @@ export function FeedSidebar() {
     }
   };
 
-  const displayedPeople = showAllPeople ? people : people.slice(0, 3);
   const displayedSkills = showAllSkills ? skills : skills.slice(0, 2);
-  const displayedRecommendations = showAllRecommendations
+  const displayedContentRecommendations = showAllRecommendations
     ? mockContentRecommendations
     : mockContentRecommendations.slice(0, 2);
 
@@ -330,10 +353,13 @@ export function FeedSidebar() {
                   )}
                 </div>
                 <div className="pt-2 border-t">
-                  <div className="text-sm text-muted-foreground">
+                  <Link
+                    href="/feed/saved"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center cursor-pointer"
+                  >
                     <Bookmark className="h-4 w-4 inline-block mr-2" />
                     <span>My items</span>
-                  </div>
+                  </Link>
                 </div>
               </div>
             </CardContent>
@@ -435,7 +461,7 @@ export function FeedSidebar() {
               <Users className="h-4 w-4 text-blue-600" />
               People you may know
             </h3>
-            {isLoadingStats ? (
+            {isLoadingRecommendations ? (
               // Skeleton loader for people cards
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -446,10 +472,6 @@ export function FeedSidebar() {
                         <Skeleton className="h-4 w-28" />
                         <Skeleton className="h-3 w-36" />
                         <Skeleton className="h-3 w-24" />
-                        <div className="flex gap-1">
-                          <Skeleton className="h-5 w-16 rounded" />
-                          <Skeleton className="h-5 w-16 rounded" />
-                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-3">
@@ -459,10 +481,26 @@ export function FeedSidebar() {
                   </div>
                 ))}
               </div>
+            ) : displayedPeople.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No recommendations available
+              </p>
             ) : (
               <div className="space-y-3">
                 {displayedPeople.map((person) => (
-                  <div key={person.id} className="p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={person.id}
+                    className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg relative group"
+                  >
+                    {/* Dismiss button */}
+                    <button
+                      onClick={() => handleDismiss(person.id)}
+                      className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Dismiss"
+                    >
+                      <X className="h-3 w-3 text-gray-400" />
+                    </button>
+
                     {/* Person Info - Clickable Avatar and Name */}
                     <div className="flex items-start gap-3">
                       <Link
@@ -470,68 +508,98 @@ export function FeedSidebar() {
                         className="relative flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                       >
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={person.avatar} alt={person.name} />
+                          <AvatarImage
+                            src={person.avatarURL || undefined}
+                            alt={`${person.firstName} ${person.lastName}`}
+                          />
                           <AvatarFallback>
-                            {person.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
+                            {person.firstName?.[0]}
+                            {person.lastName?.[0]}
                           </AvatarFallback>
                         </Avatar>
-                        <div
-                          className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getOnlineStatusColor(
-                            person.onlineStatus
-                          )}`}
-                        ></div>
                       </Link>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1 mb-1">
                           <Link
                             href={`/profile/${person.id}`}
-                            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline cursor-pointer"
+                            className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate hover:text-blue-600 hover:underline cursor-pointer"
                           >
-                            {person.name}
+                            {person.firstName} {person.lastName}
                           </Link>
-                          {person.verified && (
+                          {person.isVerified && (
                             <Check className="h-3 w-3 text-blue-600 flex-shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate mb-1">
-                          {person.role} at {person.company}
-                        </p>
-                        <p className="text-xs text-blue-600 mb-2">
-                          {person.mutualConnections} mutual connections
-                        </p>
-                        <div className="flex gap-1 flex-wrap">
-                          {person.skills.slice(0, 2).map((skill, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
+                        {person.headline && (
+                          <p className="text-xs text-muted-foreground truncate mb-1">
+                            {person.headline}
+                          </p>
+                        )}
+                        {person.mutualConnectionsCount > 0 && (
+                          <p className="text-xs text-blue-600 mb-1">
+                            {person.mutualConnectionsCount} mutual{" "}
+                            {pluralize(
+                              person.mutualConnectionsCount,
+                              "connection"
+                            )}
+                          </p>
+                        )}
+                        {person.connectionReason && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {person.connectionReason}
+                          </p>
+                        )}
                       </div>
                     </div>
 
+                    {/* Mutual Connections Preview */}
+                    {person.mutualConnections &&
+                      person.mutualConnections.length > 0 && (
+                        <div className="flex items-center gap-1 mt-2 ml-13">
+                          <div className="flex -space-x-2">
+                            {person.mutualConnections
+                              .slice(0, 3)
+                              .map((mutual) => (
+                                <Avatar
+                                  key={mutual.id}
+                                  className="h-5 w-5 border-2 border-white dark:border-gray-800"
+                                >
+                                  <AvatarImage
+                                    src={mutual.avatarURL || undefined}
+                                  />
+                                  <AvatarFallback className="text-[8px]">
+                                    {mutual.firstName?.[0]}
+                                    {mutual.lastName?.[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
                     {/* Action Buttons - At the bottom in flex layout */}
                     <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 text-xs h-8"
-                        onClick={() => handleConnect(person.id)}
-                        disabled={connectingPersonId === person.id}
-                      >
-                        {connectingPersonId === person.id ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
+                      {pendingRequestIds.includes(person.id) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs h-8 text-muted-foreground"
+                          disabled
+                        >
+                          <Clock className="h-3 w-3 mr-1" />
+                          Pending
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => handleConnect(person.id)}
+                        >
                           <Plus className="h-3 w-3 mr-1" />
-                        )}
-                        Connect
-                      </Button>
+                          Connect
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -539,23 +607,26 @@ export function FeedSidebar() {
                         onClick={() => handleViewProfile(person.id)}
                       >
                         <Eye className="h-3 w-3 mr-1" />
-                        View Profile
+                        View
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {!isLoadingStats && people.length > 3 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full mt-3"
-                onClick={() => setShowAllPeople(!showAllPeople)}
-              >
-                {showAllPeople ? "Show Less" : `Show ${people.length - 3} More`}
-              </Button>
-            )}
+            {!isLoadingRecommendations &&
+              filteredRecommendations.length > 3 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-3"
+                  onClick={() => setShowAllPeople(!showAllPeople)}
+                >
+                  {showAllPeople
+                    ? "Show Less"
+                    : `Show ${filteredRecommendations.length - 3} More`}
+                </Button>
+              )}
           </CardContent>
         </Card>
       )}
@@ -580,7 +651,7 @@ export function FeedSidebar() {
                     </p>
                     <div className="flex items-center gap-2 mb-2">
                       <p className="text-xs text-blue-600">
-                        {skill.mutualConnections} mutual connections
+                        {skill.mutualConnections} mutual {pluralize(skill.mutualConnections, "connection")}
                       </p>
                       <Badge
                         variant="outline"
@@ -643,7 +714,7 @@ export function FeedSidebar() {
             Recommended for you
           </h3>
           <div className="space-y-3">
-            {displayedRecommendations.map((rec) => (
+            {displayedContentRecommendations.map((rec) => (
               <div key={rec.id} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-start gap-2">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">

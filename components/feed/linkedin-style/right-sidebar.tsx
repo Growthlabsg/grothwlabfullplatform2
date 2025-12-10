@@ -34,6 +34,9 @@ import {
   BarChart3,
   Brain,
   Settings,
+  Hash,
+  Flame,
+  Loader2,
 } from "lucide-react";
 import {
   mockTrendingTopics,
@@ -50,6 +53,7 @@ import {
   type LinkedInJob,
 } from "@/lib/mock-linkedin-data";
 import { toast } from "sonner";
+import { useGetTrendingTopicsQuery } from "@/lib/redux/feedApi";
 
 export function FeedRightSidebar() {
   const [topics, setTopics] =
@@ -67,6 +71,13 @@ export function FeedRightSidebar() {
   const [showAllLearning, setShowAllLearning] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+
+  // Fetch trending topics from API
+  const {
+    data: trendingTopics,
+    isLoading: isTrendingLoading,
+    refetch: refetchTrending,
+  } = useGetTrendingTopicsQuery({ days: 7, limit: 10 });
 
   // Feed Preferences and Filter State
   const [filter, setFilter] = useState<
@@ -952,42 +963,109 @@ export function FeedRightSidebar() {
         </CardContent>
       </Card> */}
 
-      {/* Enhanced LinkedIn-style Premium Features */}
-      <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
+      {/* Trending Topics from API */}
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 dark:from-blue-950/30 dark:to-indigo-950/30 dark:border-blue-800">
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2 text-yellow-800">
-            <Crown className="h-4 w-4" />
-            Unlock premium features
-          </h3>
-          <div className="text-sm text-yellow-700 mb-3">
-            Get unlimited access to advanced analytics, priority support, and
-            exclusive networking opportunities.
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold flex items-center gap-2 text-blue-800 dark:text-blue-300">
+              <Flame className="h-4 w-4 text-orange-500" />
+              Trending Topics
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => refetchTrending()}
+              disabled={isTrendingLoading}
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${
+                  isTrendingLoading ? "animate-spin" : ""
+                }`}
+              />
+            </Button>
           </div>
-          <div className="space-y-2 mb-3">
-            <div className="flex items-center gap-2 text-xs text-yellow-700">
-              <div className="w-2 h-2 bg-yellow-600 rounded-full"></div>
-              <span>Advanced analytics</span>
+
+          {isTrendingLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
-            <div className="flex items-center gap-2 text-xs text-yellow-700">
-              <div className="w-2 h-2 bg-yellow-600 rounded-full"></div>
-              <span>Priority support</span>
+          ) : trendingTopics && trendingTopics.length > 0 ? (
+            <>
+              <div className="space-y-2.5">
+                {trendingTopics
+                  .slice(0, showAllTopics ? 10 : 5)
+                  .map((topic, index) => (
+                    <div
+                      key={topic.hashtag}
+                      className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-blue-100/50 dark:hover:bg-blue-900/30 cursor-pointer transition-colors group"
+                      onClick={() => {
+                        toast.info(`Searching for #${topic.hashtag}...`);
+                        // Could navigate to search with hashtag
+                      }}
+                    >
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-medium flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Hash className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          <span className="font-medium text-sm text-blue-900 dark:text-blue-200 truncate group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                            {topic.hashtag}
+                          </span>
+                          {topic.engagementScore >= 10 && (
+                            <Badge className="text-[10px] px-1.5 py-0 h-4 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 border-0">
+                              🔥 Hot
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-0.5">
+                            <MessageSquare className="h-3 w-3" />
+                            {topic.postsCount}{" "}
+                            {topic.postsCount === 1 ? "post" : "posts"}
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600">
+                            •
+                          </span>
+                          <span className="flex items-center gap-0.5">
+                            <TrendingUp className="h-3 w-3" />
+                            {topic.engagementScore} engagement
+                          </span>
+                          {topic.likesCount > 0 && (
+                            <>
+                              <span className="text-gray-300 dark:text-gray-600">
+                                •
+                              </span>
+                              <span className="flex items-center gap-0.5 text-red-500 dark:text-red-400">
+                                ❤️ {topic.likesCount}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {trendingTopics.length > 5 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-3 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100/50 dark:hover:bg-blue-900/30"
+                  onClick={() => setShowAllTopics(!showAllTopics)}
+                >
+                  {showAllTopics
+                    ? "Show Less"
+                    : `Show ${Math.min(trendingTopics.length - 5, 5)} More`}
+                </Button>
+              )}
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+              No trending topics at the moment
             </div>
-            <div className="flex items-center gap-2 text-xs text-yellow-700">
-              <div className="w-2 h-2 bg-yellow-600 rounded-full"></div>
-              <span>Exclusive events</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-yellow-700">
-              <div className="w-2 h-2 bg-yellow-600 rounded-full"></div>
-              <span>AI-powered insights</span>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs h-8 w-full"
-            onClick={() => toast.success("Redirecting to premium upgrade...")}
-          >
-            Upgrade Now
-          </Button>
+          )}
         </CardContent>
       </Card>
 

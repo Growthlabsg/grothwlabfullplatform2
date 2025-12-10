@@ -23,6 +23,7 @@ export interface BusinessPageAuthor {
 }
 
 export interface BusinessPage {
+  teamSize: any;
   id: number;
   businessTitle: string;
   email: string;
@@ -387,6 +388,35 @@ export interface UserProfile {
   connectionStatus: "none" | "pending_sent" | "pending_received" | "connected";
 }
 
+// Mutual Connection type for recommendations
+export interface MutualConnection {
+  id: number;
+  firstName: string;
+  lastName: string;
+  avatarURL: string | null;
+  headline: string | null;
+}
+
+// Connection Recommendation type
+export interface ConnectionRecommendation {
+  id: number;
+  firstName: string;
+  lastName: string;
+  headline: string | null;
+  bio: string | null;
+  avatarURL: string | null;
+  location: string | null;
+  companyName: string | null;
+  role: string;
+  isVerified: boolean;
+  totalConnections: number;
+  totalPosts: number;
+  matchScore: number;
+  connectionReason: string;
+  mutualConnectionsCount: number;
+  mutualConnections: MutualConnection[];
+}
+
 // Posts response for user/page
 // Note: Backend should include isLiked and isSaved fields for each post
 export interface PostsResponse {
@@ -513,6 +543,30 @@ export const pagesApi = baseApi.injectEndpoints({
         url: `/v1/pages/${pageId}/follow`,
         method: "POST",
       }),
+      async onQueryStarted(pageId, { dispatch, queryFulfilled }) {
+        // Optimistic update - toggle the isFollowing state
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData("getPage", pageId, (draft) => {
+            const wasFollowing = draft.isFollowing;
+            draft.isFollowing = !wasFollowing;
+            // Update follower count accordingly
+            if (wasFollowing) {
+              draft.totalFollowers = Math.max(
+                0,
+                (draft.totalFollowers || 1) - 1
+              );
+            } else {
+              draft.totalFollowers = (draft.totalFollowers || 0) + 1;
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
       invalidatesTags: (result, error, pageId) => [
         { type: "Page", id: pageId },
       ],
@@ -703,6 +757,9 @@ export const pagesApi = baseApi.injectEndpoints({
     // User Profile (for viewing other users)
     getUserProfile: builder.query<UserProfile, number>({
       query: (userId) => `/v1/users/${userId}/profile`,
+      providesTags: (result, error, userId) => [
+        { type: "UserProfile", id: userId },
+      ],
     }),
 
     // User Posts (for profile page)
@@ -739,17 +796,203 @@ export const pagesApi = baseApi.injectEndpoints({
     // Follow/Unfollow User
     toggleFollowUser: builder.mutation<{ message: string }, number>({
       query: (userId) => ({
-        url: `/v1/users/${userId}/follow`,
+        url: `/v1/connections/follow/${userId}`,
         method: "POST",
       }),
+      async onQueryStarted(userId, { dispatch, queryFulfilled }) {
+        // Optimistic update - toggle the isFollowing state
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData("getUserProfile", userId, (draft) => {
+            const wasFollowing = draft.isFollowing;
+            draft.isFollowing = !wasFollowing;
+            // Update follower count accordingly
+            if (wasFollowing) {
+              draft.totalFollowers = Math.max(
+                0,
+                (draft.totalFollowers || 1) - 1
+              );
+            } else {
+              draft.totalFollowers = (draft.totalFollowers || 0) + 1;
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, userId) => [
+        { type: "UserProfile", id: userId },
+      ],
     }),
 
     // Send Connection Request
-    sendConnectionRequest: builder.mutation<{ message: string }, number>({
-      query: (userId) => ({
-        url: `/v1/users/${userId}/connect`,
+    sendConnectionRequest: builder.mutation<
+      {
+        success: boolean;
+        connectionRequest: {
+          id: number;
+          status: "pending" | "accepted" | "rejected";
+          message?: string;
+          createdAt: string;
+        };
+        message: string;
+      },
+      { connectionRequestReceiverID: number; message?: string }
+    >({
+      query: ({ connectionRequestReceiverID, message }) => ({
+        url: `/v1/connections/request`,
         method: "POST",
+        body: { connectionRequestReceiverID, message },
       }),
+      async onQueryStarted(
+        { connectionRequestReceiverID },
+        { dispatch, queryFulfilled }
+      ) {
+        // Optimistic update
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData(
+            "getUserProfile",
+            connectionRequestReceiverID,
+            (draft) => {
+              draft.connectionStatus = "pending_sent";
+            }
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, { connectionRequestReceiverID }) => [
+        { type: "UserProfile", id: connectionRequestReceiverID },
+      ],
+    }),
+
+    // Cancel Connection Request
+    cancelConnectionRequest: builder.mutation<
+      { success: boolean; message: string },
+      number
+    >({
+      query: (connectionRequestReceiverID) => ({
+        url: `/v1/connections/request/cancel`,
+        method: "POST",
+        body: { connectionRequestReceiverID },
+      }),
+      async onQueryStarted(
+        connectionRequestReceiverID,
+        { dispatch, queryFulfilled }
+      ) {
+        // Optimistic update
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData(
+            "getUserProfile",
+            connectionRequestReceiverID,
+            (draft) => {
+              draft.connectionStatus = "none";
+            }
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, connectionRequestReceiverID) => [
+        { type: "UserProfile", id: connectionRequestReceiverID },
+      ],
+    }),
+
+    // Accept Connection Request
+    acceptConnectionRequest: builder.mutation<
+      { success: boolean; message: string },
+      number
+    >({
+      query: (connectionRequestSenderID) => ({
+        url: `/v1/connections/request/accept`,
+        method: "POST",
+        body: { connectionRequestSenderID },
+      }),
+      async onQueryStarted(
+        connectionRequestSenderID,
+        { dispatch, queryFulfilled }
+      ) {
+        // Optimistic update
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData(
+            "getUserProfile",
+            connectionRequestSenderID,
+            (draft) => {
+              draft.connectionStatus = "connected";
+              draft.isConnected = true;
+              draft.totalConnections = (draft.totalConnections || 0) + 1;
+            }
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, connectionRequestSenderID) => [
+        { type: "UserProfile", id: connectionRequestSenderID },
+      ],
+    }),
+
+    // Reject Connection Request
+    rejectConnectionRequest: builder.mutation<
+      { success: boolean; message: string },
+      number
+    >({
+      query: (connectionRequestSenderID) => ({
+        url: `/v1/connections/request/reject`,
+        method: "POST",
+        body: { connectionRequestSenderID },
+      }),
+      async onQueryStarted(
+        connectionRequestSenderID,
+        { dispatch, queryFulfilled }
+      ) {
+        // Optimistic update
+        const patchResult = dispatch(
+          pagesApi.util.updateQueryData(
+            "getUserProfile",
+            connectionRequestSenderID,
+            (draft) => {
+              draft.connectionStatus = "none";
+            }
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, connectionRequestSenderID) => [
+        { type: "UserProfile", id: connectionRequestSenderID },
+      ],
+    }),
+
+    // Get Connection Recommendations
+    getConnectionRecommendations: builder.query<
+      ConnectionRecommendation[],
+      { recommendationType?: string; limit?: number }
+    >({
+      query: ({ recommendationType = "all", limit = 20 }) => ({
+        url: `/v1/connections/recommendations`,
+        params: { recommendation_type: recommendationType, limit },
+      }),
+      providesTags: ["ConnectionRecommendations"],
     }),
   }),
   overrideExisting: true,
@@ -788,4 +1031,8 @@ export const {
   useGetPageAnalyticsQuery,
   useToggleFollowUserMutation,
   useSendConnectionRequestMutation,
+  useCancelConnectionRequestMutation,
+  useAcceptConnectionRequestMutation,
+  useRejectConnectionRequestMutation,
+  useGetConnectionRecommendationsQuery,
 } = pagesApi;

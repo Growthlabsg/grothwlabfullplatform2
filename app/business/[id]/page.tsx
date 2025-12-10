@@ -21,6 +21,7 @@ import {
   Twitter,
   Linkedin,
   Instagram,
+  Construction,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,19 +35,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Post as ApiPost } from "@/components/feed/api-post";
+import { CreatePostDialog } from "@/components/feed/api-create-post-dialog";
 import {
   useGetPageQuery,
   useGetPagePostsQuery,
   useToggleFollowPageMutation,
 } from "@/lib/redux/pagesApi";
+import { usePageContext } from "@/contexts/page-context";
+import { pluralize } from "@/lib/utils";
 
 export default function BusinessPageView() {
   const params = useParams();
   const router = useRouter();
   const pageId = Number(params.id);
+  const { activePageId, isOperatingAsPage } = usePageContext();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [postsPage, setPostsPage] = useState(1);
+
+  // Check if user owns this page (is operating as this page)
+  const isOwnPage = isOperatingAsPage && activePageId === pageId;
 
   const {
     data: pageData,
@@ -137,7 +145,7 @@ export default function BusinessPageView() {
   return (
     <div className="min-h-screen bg-background">
       {/* Cover Image */}
-      <div className="relative h-48 md:h-64 lg:h-80 bg-gradient-to-r from-blue-600 to-purple-600">
+      <div className="relative h-48 md:h-64 lg:h-80 bg-gray-200">
         {page.coverImageURL && (
           <Image
             src={page.coverImageURL}
@@ -218,9 +226,9 @@ export default function BusinessPageView() {
               <Button
                 onClick={handleFollow}
                 disabled={followLoading}
-                variant="default"
+                variant={page.isFollowing ? "outline" : "default"}
               >
-                Follow
+                {page.isFollowing ? "Following" : "Follow"}
               </Button>
               <Button variant="outline" onClick={handleMessage}>
                 <MessageCircle className="h-4 w-4 mr-2" />
@@ -250,20 +258,26 @@ export default function BusinessPageView() {
             <span className="font-semibold">
               {formatNumber(page.totalFollowers)}
             </span>
-            <span className="text-muted-foreground">followers</span>
+            <span className="text-muted-foreground">
+              {pluralize(page.totalFollowers || 0, "follower")}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="font-semibold">
               {formatNumber(page.totalPosts)}
             </span>
-            <span className="text-muted-foreground">posts</span>
+            <span className="text-muted-foreground">
+              {pluralize(page.totalPosts || 0, "post")}
+            </span>
           </div>
           {page.teamSize && (
             <div className="flex items-center gap-1">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{page.teamSize}</span>
-              <span className="text-muted-foreground">employees</span>
+              <span className="text-muted-foreground">
+                {pluralize(page.teamSize || 0, "employee")}
+              </span>
             </div>
           )}
         </div>
@@ -439,155 +453,33 @@ export default function BusinessPageView() {
 
           <TabsContent value="about" className="mt-6">
             <Card>
-              <CardContent className="pt-6 space-y-6">
-                {/* Full Description */}
-                {(page.longDescription || page.description) && (
-                  <div>
-                    <h3 className="font-semibold mb-2">
-                      About {page.businessTitle}
-                    </h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {page.longDescription || page.description}
-                    </p>
+              <CardContent className="py-12 text-center">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center mb-4">
+                    <Construction className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                )}
-
-                {/* Details Grid */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Company Details */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Company Details</h3>
-                    <dl className="space-y-3">
-                      {page.industry && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Industry
-                          </dt>
-                          <dd className="font-medium">{page.industry}</dd>
-                        </div>
-                      )}
-                      {page.companySize && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Company Size
-                          </dt>
-                          <dd className="font-medium">{page.companySize}</dd>
-                        </div>
-                      )}
-                      {page.teamSize && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Employees
-                          </dt>
-                          <dd className="font-medium">{page.teamSize}</dd>
-                        </div>
-                      )}
-                      {page.foundedYear && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Founded
-                          </dt>
-                          <dd className="font-medium">{page.foundedYear}</dd>
-                        </div>
-                      )}
-                      {page.specialties && page.specialties.length > 0 && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground mb-2">
-                            Specialties
-                          </dt>
-                          <dd className="flex flex-wrap gap-1">
-                            {page.specialties.map((specialty, index) => (
-                              <Badge
-                                key={index}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {specialty}
-                              </Badge>
-                            ))}
-                          </dd>
-                        </div>
-                      )}
-                    </dl>
-                  </div>
-
-                  {/* Location & Contact */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Location & Contact</h3>
-                    <dl className="space-y-3">
-                      {page.headquarterLocation && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Headquarters
-                          </dt>
-                          <dd className="font-medium">
-                            {page.headquarterLocation}
-                          </dd>
-                        </div>
-                      )}
-                      {page.contactAddress && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Address
-                          </dt>
-                          <dd className="font-medium">{page.contactAddress}</dd>
-                        </div>
-                      )}
-                      {page.contactPhone && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Phone
-                          </dt>
-                          <dd className="font-medium">
-                            <a
-                              href={`tel:${page.contactPhone}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {page.contactPhone}
-                            </a>
-                          </dd>
-                        </div>
-                      )}
-                      {page.contactEmail && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Email
-                          </dt>
-                          <dd className="font-medium">
-                            <a
-                              href={`mailto:${page.contactEmail}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              {page.contactEmail}
-                            </a>
-                          </dd>
-                        </div>
-                      )}
-                      {page.websiteUrl && (
-                        <div>
-                          <dt className="text-sm text-muted-foreground">
-                            Website
-                          </dt>
-                          <dd className="font-medium">
-                            <a
-                              href={page.websiteUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {page.websiteUrl}
-                            </a>
-                          </dd>
-                        </div>
-                      )}
-                    </dl>
-                  </div>
+                  <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Coming Soon
+                  </h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Detailed company information, team members, milestones, and
+                    more will be available here soon.
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="posts" className="mt-6">
+            {/* Create Post - Only for own page when operating as page */}
+            {isOwnPage && (
+              <Card className="mb-4">
+                <CardContent className="p-6">
+                  <CreatePostDialog />
+                </CardContent>
+              </Card>
+            )}
+
             {postsLoading && !posts.length ? (
               <PostsSkeleton />
             ) : posts.length > 0 ? (
@@ -595,7 +487,7 @@ export default function BusinessPageView() {
                 {posts.map((post) => (
                   <ApiPost key={post.id} post={post} />
                 ))}
-                {postsData?.hasMore && (
+                {postsData?.hasNext && (
                   <div className="flex justify-center pt-4">
                     <Button
                       variant="outline"

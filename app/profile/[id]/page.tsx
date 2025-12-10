@@ -7,6 +7,9 @@ import {
   useGetUserPostsQuery,
   useToggleFollowUserMutation,
   useSendConnectionRequestMutation,
+  useCancelConnectionRequestMutation,
+  useAcceptConnectionRequestMutation,
+  useRejectConnectionRequestMutation,
 } from "@/lib/redux";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,10 +31,14 @@ import {
   MoreHorizontal,
   Share2,
   CheckCircle2,
+  X,
+  UserMinus,
 } from "lucide-react";
 import Link from "next/link";
 import { Post } from "@/components/feed/api-post";
+import { CreatePostDialog } from "@/components/feed/api-create-post-dialog";
 import { toast } from "sonner";
+import { pluralize } from "@/lib/utils";
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -61,16 +68,22 @@ export default function UserProfilePage() {
     useToggleFollowUserMutation();
   const [sendConnectionRequest, { isLoading: isConnecting }] =
     useSendConnectionRequestMutation();
+  const [cancelConnectionRequest, { isLoading: isCanceling }] =
+    useCancelConnectionRequestMutation();
+  const [acceptConnectionRequest, { isLoading: isAccepting }] =
+    useAcceptConnectionRequestMutation();
+  const [rejectConnectionRequest, { isLoading: isRejecting }] =
+    useRejectConnectionRequestMutation();
 
   const isOwnProfile = currentUser?.id === userId;
 
   const handleFollow = async () => {
+    // Store current state before optimistic update changes it
+    const wasFollowing = profile?.isFollowing;
     try {
       await toggleFollow(userId).unwrap();
       toast.success(
-        profile?.isFollowing
-          ? "Unfollowed successfully"
-          : "Following successfully"
+        wasFollowing ? "Unfollowed successfully" : "Following successfully"
       );
     } catch (error) {
       toast.error("Failed to update follow status");
@@ -79,44 +92,39 @@ export default function UserProfilePage() {
 
   const handleConnect = async () => {
     try {
-      await sendConnectionRequest(userId).unwrap();
       if (profile?.connectionStatus === "none") {
+        // Send connection request
+        await sendConnectionRequest({
+          connectionRequestReceiverID: userId,
+        }).unwrap();
         toast.success("Connection request sent");
       } else if (profile?.connectionStatus === "pending_received") {
+        // Accept connection request
+        await acceptConnectionRequest(userId).unwrap();
         toast.success("Connection accepted");
       } else {
-        toast.success("Connection updated");
+        toast.info("Already connected or request pending");
       }
     } catch (error) {
       toast.error("Failed to update connection status");
     }
   };
 
-  const getConnectionButtonText = () => {
-    if (!profile) return "Connect";
-    switch (profile.connectionStatus) {
-      case "connected":
-        return "Connected";
-      case "pending_sent":
-        return "Pending";
-      case "pending_received":
-        return "Accept";
-      default:
-        return "Connect";
+  const handleCancelConnection = async () => {
+    try {
+      await cancelConnectionRequest(userId).unwrap();
+      toast.success("Connection request cancelled");
+    } catch (error) {
+      toast.error("Failed to cancel connection request");
     }
   };
 
-  const getConnectionButtonIcon = () => {
-    if (!profile) return <UserPlus className="h-4 w-4 mr-2" />;
-    switch (profile.connectionStatus) {
-      case "connected":
-        return <UserCheck className="h-4 w-4 mr-2" />;
-      case "pending_sent":
-        return <Clock className="h-4 w-4 mr-2" />;
-      case "pending_received":
-        return <UserPlus className="h-4 w-4 mr-2" />;
-      default:
-        return <UserPlus className="h-4 w-4 mr-2" />;
+  const handleRejectConnection = async () => {
+    try {
+      await rejectConnectionRequest(userId).unwrap();
+      toast.success("Connection request rejected");
+    } catch (error) {
+      toast.error("Failed to reject connection request");
     }
   };
 
@@ -180,7 +188,7 @@ export default function UserProfilePage() {
       <Card className="mb-6 overflow-hidden">
         {/* Cover Image */}
         <div
-          className="h-32 sm:h-48 bg-gradient-to-r from-blue-500 to-purple-600"
+          className="h-32 sm:h-48 bg-gray-100 dark:bg-gray-800"
           style={
             profile.coverImageURL
               ? {
@@ -236,20 +244,50 @@ export default function UserProfilePage() {
                 >
                   {profile.isFollowing ? "Following" : "Follow"}
                 </Button>
-                <Button
-                  variant={
-                    profile.connectionStatus === "connected"
-                      ? "outline"
-                      : "default"
-                  }
-                  onClick={handleConnect}
-                  disabled={
-                    isConnecting || profile.connectionStatus === "pending_sent"
-                  }
-                >
-                  {getConnectionButtonIcon()}
-                  {getConnectionButtonText()}
-                </Button>
+
+                {/* Connection buttons based on status */}
+                {profile.connectionStatus === "none" && (
+                  <Button onClick={handleConnect} disabled={isConnecting}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Connect
+                  </Button>
+                )}
+
+                {profile.connectionStatus === "pending_sent" && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelConnection}
+                    disabled={isCanceling}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel Request
+                  </Button>
+                )}
+
+                {profile.connectionStatus === "pending_received" && (
+                  <>
+                    <Button onClick={handleConnect} disabled={isAccepting}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Accept
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleRejectConnection}
+                      disabled={isRejecting}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+
+                {profile.connectionStatus === "connected" && (
+                  <Button variant="outline" disabled>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Connected
+                  </Button>
+                )}
+
                 <Button variant="outline" size="icon">
                   <MessageSquare className="h-4 w-4" />
                 </Button>
@@ -260,7 +298,7 @@ export default function UserProfilePage() {
             )}
 
             {isOwnProfile && (
-              <Link href="/profile">
+              <Link href="/settings/profile">
                 <Button variant="outline">Edit Profile</Button>
               </Link>
             )}
@@ -271,55 +309,46 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{profile.totalFollowers}</span>
-              <span className="text-muted-foreground">Followers</span>
+              <span className="text-muted-foreground">
+                {pluralize(profile.totalFollowers || 0, "Follower")}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <UserCheck className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{profile.totalConnections}</span>
-              <span className="text-muted-foreground">Connections</span>
+              <span className="text-muted-foreground">
+                {pluralize(profile.totalConnections || 0, "Connection")}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold">{profile.totalPosts}</span>
-              <span className="text-muted-foreground">Posts</span>
+              <span className="text-muted-foreground">
+                {pluralize(profile.totalPosts || 0, "Post")}
+              </span>
             </div>
           </div>
-
-          {/* Bio */}
-          {profile.bio && (
-            <div className="mt-4 pt-4 border-t">
-              <h3 className="font-semibold mb-2">About</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {profile.bio}
-              </p>
-            </div>
-          )}
-
-          {/* Links */}
-          {profile.linkedInUrl && (
-            <div className="mt-4 pt-4 border-t">
-              <a
-                href={profile.linkedInUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <LinkIcon className="h-4 w-4" />
-                LinkedIn Profile
-              </a>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Tabs for Posts/Activity */}
+      {/* Tabs for Posts/About/Activity */}
       <Tabs defaultValue="posts" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="about">About</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts">
+          {/* Create Post - Only for own profile */}
+          {isOwnProfile && (
+            <Card className="mb-4">
+              <CardContent className="p-6">
+                <CreatePostDialog />
+              </CardContent>
+            </Card>
+          )}
+
           {postsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -370,6 +399,18 @@ export default function UserProfilePage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="about">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="font-semibold mb-2">About Section Coming Soon</h3>
+              <p className="text-muted-foreground">
+                Detailed profile information will be available here soon.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="activity">

@@ -234,21 +234,31 @@ export function CreatePostDialog({
     ] as const;
     const patches: any[] = [];
 
+    // Include pageId variations to match all possible cache keys
+    const pageIdVariations = [null, undefined, activePageId].filter(
+      (v, i, arr) => arr.indexOf(v) === i
+    );
+
     for (const feed_type of feedTypes) {
-      try {
-        const patch = dispatch(
-          feedApi.util.updateQueryData(
-            "getFeed",
-            { page: 1, limit: 10, feed_type },
-            (draft) => {
-              draft.posts.unshift(optimisticPost);
-              draft.total += 1;
-            }
-          )
-        );
-        patches.push(patch);
-      } catch {
-        // Query doesn't exist, skip
+      for (const pageId of pageIdVariations) {
+        try {
+          const patch = dispatch(
+            feedApi.util.updateQueryData(
+              "getFeed",
+              { page: 1, limit: 10, feed_type, pageId },
+              (draft) => {
+                // Check if post already exists to avoid duplicates
+                if (!draft.posts.find((p) => p.id === optimisticPost.id)) {
+                  draft.posts.unshift(optimisticPost);
+                  draft.total += 1;
+                }
+              }
+            )
+          );
+          patches.push(patch);
+        } catch {
+          // Query doesn't exist, skip
+        }
       }
     }
 
@@ -273,28 +283,30 @@ export function CreatePostDialog({
       const createdPost = await createPost(postRequest).unwrap();
 
       // Update the optimistic post with real ID
-      for (const feed_type of feedTypes) {
-        try {
-          dispatch(
-            feedApi.util.updateQueryData(
-              "getFeed",
-              { page: 1, limit: 10, feed_type },
-              (draft) => {
-                const index = draft.posts.findIndex(
-                  (p) => p.id === optimisticPost.id
-                );
-                if (index !== -1) {
-                  draft.posts[index] = {
-                    ...createdPost,
-                    isPending: hasFiles,
-                    pendingAttachments: hasFiles ? pendingFiles.length : 0,
-                  };
+      for (const pageId of [activePageId, null, undefined]) {
+        for (const feed_type of feedTypes) {
+          try {
+            dispatch(
+              feedApi.util.updateQueryData(
+                "getFeed",
+                { page: 1, limit: 10, feed_type, pageId },
+                (draft) => {
+                  const index = draft.posts.findIndex(
+                    (p) => p.id === optimisticPost.id
+                  );
+                  if (index !== -1) {
+                    draft.posts[index] = {
+                      ...createdPost,
+                      isPending: hasFiles,
+                      pendingAttachments: hasFiles ? pendingFiles.length : 0,
+                    };
+                  }
                 }
-              }
-            )
-          );
-        } catch {
-          // Skip
+              )
+            );
+          } catch {
+            // Skip
+          }
         }
       }
 
@@ -331,28 +343,30 @@ export function CreatePostDialog({
             uploadedCount++;
 
             // Update pending count in cache
-            for (const feed_type of feedTypes) {
-              try {
-                dispatch(
-                  feedApi.util.updateQueryData(
-                    "getFeed",
-                    { page: 1, limit: 10, feed_type },
-                    (draft) => {
-                      const post = draft.posts.find(
-                        (p) => p.id === createdPost.id
-                      );
-                      if (post) {
-                        post.pendingAttachments =
-                          pendingFiles.length - uploadedCount;
-                        if (post.pendingAttachments === 0) {
-                          post.isPending = false;
+            for (const pageId of [activePageId, null, undefined]) {
+              for (const feed_type of feedTypes) {
+                try {
+                  dispatch(
+                    feedApi.util.updateQueryData(
+                      "getFeed",
+                      { page: 1, limit: 10, feed_type, pageId },
+                      (draft) => {
+                        const post = draft.posts.find(
+                          (p) => p.id === createdPost.id
+                        );
+                        if (post) {
+                          post.pendingAttachments =
+                            pendingFiles.length - uploadedCount;
+                          if (post.pendingAttachments === 0) {
+                            post.isPending = false;
+                          }
                         }
                       }
-                    }
-                  )
-                );
-              } catch {
-                // Skip
+                    )
+                  );
+                } catch {
+                  // Skip
+                }
               }
             }
           } catch (error) {
@@ -363,23 +377,25 @@ export function CreatePostDialog({
       }
 
       // Mark post as complete
-      for (const feed_type of feedTypes) {
-        try {
-          dispatch(
-            feedApi.util.updateQueryData(
-              "getFeed",
-              { page: 1, limit: 10, feed_type },
-              (draft) => {
-                const post = draft.posts.find((p) => p.id === createdPost.id);
-                if (post) {
-                  post.isPending = false;
-                  post.pendingAttachments = 0;
+      for (const pageId of [activePageId, null, undefined]) {
+        for (const feed_type of feedTypes) {
+          try {
+            dispatch(
+              feedApi.util.updateQueryData(
+                "getFeed",
+                { page: 1, limit: 10, feed_type, pageId },
+                (draft) => {
+                  const post = draft.posts.find((p) => p.id === createdPost.id);
+                  if (post) {
+                    post.isPending = false;
+                    post.pendingAttachments = 0;
+                  }
                 }
-              }
-            )
-          );
-        } catch {
-          // Skip
+              )
+            );
+          } catch {
+            // Skip
+          }
         }
       }
 

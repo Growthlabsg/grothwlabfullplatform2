@@ -152,6 +152,9 @@ export const baseApi = createApi({
     "PricingTiers",
     "OfficeLocations",
     "Milestones",
+    "SavedPosts",
+    "ConnectionRecommendations",
+    "TrendingTopics",
   ],
 });
 

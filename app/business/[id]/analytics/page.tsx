@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +39,10 @@ import {
 } from "lucide-react";
 import { useGetPageQuery, useGetPageAnalyticsQuery } from "@/lib/redux";
 import { toast } from "sonner";
+import { ComingSoonOverlay } from "@/components/ui/coming-soon-overlay";
 
 interface PageAnalyticsProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 // Mock data for analytics - replace with real API data
@@ -170,7 +170,7 @@ function StatCard({
 }
 
 export default function PageAnalyticsPage({ params }: PageAnalyticsProps) {
-  const { id } = use(params);
+  const { id } = params;
   const pageId = parseInt(id);
 
   const { data: page, isLoading: isLoadingPage } = useGetPageQuery(pageId);
@@ -213,7 +213,11 @@ export default function PageAnalyticsPage({ params }: PageAnalyticsProps) {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto py-8 px-4">
+    <div className="container max-w-6xl mx-auto py-8 px-4 relative">
+      <ComingSoonOverlay
+        title="Analytics Coming Soon"
+        description="Advanced analytics and insights for your business page are on the way!"
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../lib/redux";
 import {
   useLoginMutation,
@@ -16,6 +17,18 @@ import {
   loginSuccess,
   setTokens,
 } from "../lib/redux";
+
+// Helper functions to sync tokens with cookies for middleware access
+const setCookie = (name: string, value: string, days: number = 7) => {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+};
 
 interface UserProfile {
   id: number;
@@ -102,6 +115,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAppSelector(
     (state) => state.auth
   );
@@ -127,6 +141,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const refreshToken = localStorage.getItem("refreshToken");
 
         if (accessToken && refreshToken) {
+          // Sync tokens to cookies for middleware access
+          setCookie("accessToken", accessToken);
+          setCookie("refreshToken", refreshToken);
+
           // Store tokens in Redux state first
           dispatch(
             setTokens({
@@ -167,6 +185,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   refreshResult.refresh_token
                 );
 
+                // Sync refreshed tokens to cookies
+                setCookie("accessToken", refreshResult.access_token);
+                setCookie("refreshToken", refreshResult.refresh_token);
+
                 // Update Redux state with new tokens
                 dispatch(
                   setTokens({
@@ -192,9 +214,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
               }
             } catch (refreshError) {
-              // Refresh failed, clear tokens
+              // Refresh failed, clear tokens and cookies
               localStorage.removeItem("accessToken");
               localStorage.removeItem("refreshToken");
+              deleteCookie("accessToken");
+              deleteCookie("refreshToken");
             }
           }
         }
@@ -229,6 +253,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Store tokens in localStorage
       localStorage.setItem("accessToken", result.access_token);
       localStorage.setItem("refreshToken", result.refresh_token);
+
+      // Sync tokens to cookies for middleware access
+      setCookie("accessToken", result.access_token);
+      setCookie("refreshToken", result.refresh_token);
 
       // Get user profile
       const userData = await fetch("http://localhost:8888/api/v1/auth/me", {
@@ -315,8 +343,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
 
+      // Clear cookies
+      deleteCookie("accessToken");
+      deleteCookie("refreshToken");
+
       // Clear Redux state
       dispatch(logout());
+
+      // Redirect to home page
+      router.push("/");
     }
   };
 

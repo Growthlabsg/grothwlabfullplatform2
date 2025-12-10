@@ -64,6 +64,7 @@ import {
 } from "@/lib/redux";
 import { usePageContext } from "@/contexts/page-context";
 import { toast } from "sonner";
+import { ComingSoonOverlay } from "@/components/ui/coming-soon-overlay";
 
 interface PageSettingsProps {
   params: { id: string };
@@ -203,7 +204,11 @@ export default function PageSettingsPage({ params }: PageSettingsProps) {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
+    <div className="container max-w-4xl mx-auto py-8 px-4 relative">
+      <ComingSoonOverlay
+        title="Settings Coming Soon"
+        description="Business page settings are being enhanced with new features!"
+      />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -231,7 +236,7 @@ export default function PageSettingsPage({ params }: PageSettingsProps) {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">
             <Building2 className="h-4 w-4 mr-2" />
             General
@@ -243,6 +248,14 @@ export default function PageSettingsPage({ params }: PageSettingsProps) {
           <TabsTrigger value="social">
             <Target className="h-4 w-4 mr-2" />
             Mission
+          </TabsTrigger>
+          <TabsTrigger value="members">
+            <Users className="h-4 w-4 mr-2" />
+            Members
+          </TabsTrigger>
+          <TabsTrigger value="investors">
+            <Globe className="h-4 w-4 mr-2" />
+            Investors
           </TabsTrigger>
           <TabsTrigger value="danger">
             <Shield className="h-4 w-4 mr-2" />
@@ -480,6 +493,50 @@ export default function PageSettingsPage({ params }: PageSettingsProps) {
                   Delete Page
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Manage Members Tab */}
+        <TabsContent value="members">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Members</CardTitle>
+              <CardDescription>
+                Add, remove, and manage team members with different roles
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="py-12 text-center">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="font-semibold mb-2">
+                Members Management Coming Soon
+              </h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Soon you'll be able to invite team members, assign roles like
+                Admin, Editor, or Analyst, and manage their permissions.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Manage Investors Tab */}
+        <TabsContent value="investors">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Investors</CardTitle>
+              <CardDescription>
+                Connect with investors and manage investor relations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="py-12 text-center">
+              <Globe className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="font-semibold mb-2">
+                Investor Management Coming Soon
+              </h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                We're building tools to help you manage investor relations,
+                share updates, and connect with potential investors.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

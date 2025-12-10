@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Bell } from "lucide-react";
+import { Menu, X, Bell, Users } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notification-context";
+import { usePageContext } from "@/contexts/page-context";
 import Image from "next/image";
 import { PersistentQRButton } from "@/components/qr-code/persistent-qr-button";
 import { SimpleThemeToggle } from "@/components/theme-toggle";
@@ -20,6 +21,7 @@ interface HeaderProps {
 export function Header({ toggleSidebar, isMobile }: HeaderProps) {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
+  const { isOperatingAsPage } = usePageContext();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -175,6 +177,29 @@ export function Header({ toggleSidebar, isMobile }: HeaderProps) {
             size="icon"
             className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
           />
+
+          {/* Connections/Followers Button - Only show when logged in */}
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+              title={
+                isOperatingAsPage ? "Manage Followers" : "Manage Connections"
+              }
+              asChild
+            >
+              <Link
+                href={
+                  isOperatingAsPage
+                    ? "/business/manage-followers"
+                    : "/connect/manage-connections"
+                }
+              >
+                <Users className="h-5 w-5" />
+              </Link>
+            </Button>
+          )}
 
           {/* Notification Bell */}
           <Button

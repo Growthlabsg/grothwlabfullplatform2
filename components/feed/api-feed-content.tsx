@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   Sparkles,
   Filter,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { useGetFeedQuery } from "@/lib/redux";
 import { Post } from "./api-post";
@@ -64,18 +65,48 @@ export function ApiFeedContent() {
     }
   );
 
+  // Ref for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
   // Update posts when new data arrives
+  // For page 1, always sync with feedData to reflect optimistic updates
+  // For other pages, append without duplicates
   useEffect(() => {
-    if (feedData) {
+    if (feedData?.posts) {
       if (page === 1) {
         // Reset posts for new feed type or refresh
         setAllPosts(feedData.posts);
       } else {
-        // Append new posts for pagination
-        setAllPosts((prev) => [...prev, ...feedData.posts]);
+        // Append new posts for pagination, avoiding duplicates
+        setAllPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newPosts = feedData.posts.filter((p) => !existingIds.has(p.id));
+          return [...prev, ...newPosts];
+        });
       }
     }
-  }, [feedData, page]);
+  }, [feedData?.posts, page]);
+
+  // Sync individual post updates (for optimistic updates like likes)
+  // This ensures local state reflects cache changes even when not fetching new pages
+  useEffect(() => {
+    if (feedData?.posts && page === 1) {
+      setAllPosts((prev) => {
+        // Create a map of current posts for quick lookup
+        const feedPostMap = new Map(feedData.posts.map((p) => [p.id, p]));
+
+        // Update existing posts with new data from cache
+        return prev.map((post) => {
+          const cachedPost = feedPostMap.get(post.id);
+          if (cachedPost) {
+            // Merge in the updated fields (like isLiked, likesCount, etc.)
+            return { ...post, ...cachedPost };
+          }
+          return post;
+        });
+      });
+    }
+  }, [feedData?.posts]);
 
   // Reset page when feed type or page context changes
   useEffect(() => {
@@ -84,6 +115,30 @@ export function ApiFeedContent() {
     // Note: refetchOnMountOrArgChange: true handles refetching when pageId changes
     // We don't need to manually call refetch() here
   }, [feedType, activePageId]);
+
+  // Infinite scroll - load more when scrolling near bottom
+  const loadMore = useCallback(() => {
+    if (feedData?.hasNext && !isFetching) {
+      setPage((prev) => prev + 1);
+    }
+  }, [feedData?.hasNext, isFetching]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && feedData?.hasNext && !isFetching) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px" }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loadMore, feedData?.hasNext, isFetching]);
 
   const handleRefresh = () => {
     setPage(1);
@@ -95,11 +150,9 @@ export function ApiFeedContent() {
     toast.success("Feed refreshed!");
   };
 
-  const loadMore = () => {
-    if (feedData?.hasNext && !isFetching) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  // Separate pending posts (uploading) from regular posts
+  const pendingPosts = allPosts.filter((post) => post.isPending);
+  const regularPosts = allPosts.filter((post) => !post.isPending);
 
   const feedOptions = [
     {
@@ -344,7 +397,29 @@ export function ApiFeedContent() {
         </div>
       ) : (
         <div className="space-y-6">
-          {allPosts.length === 0 && !isLoading && !isFetching && !loading ? (
+          {/* Pending Posts (Uploading) - Always shown at top */}
+          {pendingPosts.length > 0 && (
+            <div className="space-y-6">
+              {pendingPosts.map((post) => (
+                <div key={post.id} className="relative">
+                  <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 rounded-lg z-10 flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Posting...</span>
+                    </div>
+                  </div>
+                  <Post post={post} onEdit={() => {}} onDelete={() => {}} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Regular Posts */}
+          {regularPosts.length === 0 &&
+          pendingPosts.length === 0 &&
+          !isLoading &&
+          !isFetching &&
+          !loading ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <div className="text-gray-500 mb-4">
@@ -364,7 +439,7 @@ export function ApiFeedContent() {
               </CardContent>
             </Card>
           ) : (
-            allPosts.map((post) => (
+            regularPosts.map((post) => (
               <Post
                 key={post.id}
                 post={post}
@@ -380,29 +455,15 @@ export function ApiFeedContent() {
             ))
           )}
 
-          {/* Load More */}
-          {feedData?.hasNext && (
-            <div className="text-center py-6">
-              <Button
-                onClick={loadMore}
-                disabled={isFetching}
-                variant="outline"
-                size="lg"
-              >
-                {isFetching ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    Load more posts
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          {/* Infinite Scroll Trigger */}
+          <div ref={loadMoreRef} className="py-4">
+            {isFetching && page > 1 && (
+              <div className="flex items-center justify-center gap-2 text-gray-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Loading more posts...</span>
+              </div>
+            )}
+          </div>
 
           {/* End of Feed */}
           {!feedData?.hasNext && allPosts.length > 0 && (

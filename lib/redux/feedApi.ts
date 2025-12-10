@@ -55,6 +55,33 @@ export interface PageAuthorInfo {
   verificationStatus: "pending" | "verified" | "rejected" | "suspended";
 }
 
+// Original post info for reposts
+export interface OriginalPost {
+  id: number;
+  authorID: number;
+  author: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    avatarURL?: string;
+    headline?: string;
+    isVerified: boolean;
+  };
+  authorPageID?: number;
+  authorPage?: PostPageAuthor;
+  postContent: string;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  viewsCount: number;
+  repostsCount: number;
+  postVisibility: string;
+  postHashTags: string[];
+  attachments: PostAttachment[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Post {
   id: number;
   authorID: number;
@@ -67,6 +94,7 @@ export interface Post {
   commentsCount: number;
   sharesCount: number;
   viewsCount: number;
+  repostsCount?: number;
   postVisibility: "public" | "private" | "connections";
   postHashTags: string[];
   attachments: PostAttachment[];
@@ -74,6 +102,10 @@ export interface Post {
   updatedAt?: string;
   isLiked: boolean;
   isSaved: boolean;
+  // Repost fields
+  isRepost?: boolean;
+  originalPostID?: number;
+  originalPost?: OriginalPost;
   // For optimistic updates - pending state
   isPending?: boolean;
   pendingAttachments?: number;
@@ -144,6 +176,15 @@ export interface FileUploadResponse {
     postAttachmentTitle: string;
     postAttachmentDescription?: string;
   };
+}
+
+// Trending Topics Types
+export interface TrendingTopic {
+  hashtag: string;
+  postsCount: number;
+  likesCount: number;
+  repostsCount: number;
+  engagementScore: number;
 }
 
 // Feed API endpoints
@@ -286,6 +327,106 @@ export const feedApi = baseApi.injectEndpoints({
             patchResults.push(patchResult);
           } catch {
             // Query doesn't exist, skip
+          }
+        }
+
+        // Also update the single post cache (for single post page)
+        try {
+          const singlePostPatch = dispatch(
+            feedApi.util.updateQueryData("getPost", postId, (draft) => {
+              draft.isLiked = !draft.isLiked;
+              draft.likesCount += draft.isLiked ? 1 : -1;
+            })
+          );
+          patchResults.push(singlePostPatch);
+        } catch {
+          // Single post query doesn't exist, skip
+        }
+
+        // Also update getUserPosts cache (for user profile pages)
+        const userPostsQueries = Object.entries(apiQueries).filter(([key]) =>
+          key.startsWith("getUserPosts(")
+        );
+        for (const [key] of userPostsQueries) {
+          try {
+            const argsMatch = key.match(/getUserPosts\((.*)\)/);
+            if (argsMatch && argsMatch[1]) {
+              const args = JSON.parse(argsMatch[1]);
+              const patchResult = dispatch(
+                baseApi.util.updateQueryData(
+                  "getUserPosts" as any,
+                  args,
+                  (draft: any) => {
+                    const post = draft.posts?.find((p: any) => p.id === postId);
+                    if (post) {
+                      post.isLiked = !post.isLiked;
+                      post.likesCount += post.isLiked ? 1 : -1;
+                    }
+                  }
+                )
+              );
+              patchResults.push(patchResult);
+            }
+          } catch {
+            // Skip if parsing fails
+          }
+        }
+
+        // Also update getPagePosts cache (for business page profiles)
+        const pagePostsQueries = Object.entries(apiQueries).filter(([key]) =>
+          key.startsWith("getPagePosts(")
+        );
+        for (const [key] of pagePostsQueries) {
+          try {
+            const argsMatch = key.match(/getPagePosts\((.*)\)/);
+            if (argsMatch && argsMatch[1]) {
+              const args = JSON.parse(argsMatch[1]);
+              const patchResult = dispatch(
+                baseApi.util.updateQueryData(
+                  "getPagePosts" as any,
+                  args,
+                  (draft: any) => {
+                    const post = draft.posts?.find((p: any) => p.id === postId);
+                    if (post) {
+                      post.isLiked = !post.isLiked;
+                      post.likesCount += post.isLiked ? 1 : -1;
+                    }
+                  }
+                )
+              );
+              patchResults.push(patchResult);
+            }
+          } catch {
+            // Skip if parsing fails
+          }
+        }
+
+        // Also update getSavedPosts cache
+        const savedPostsQueries = Object.entries(apiQueries).filter(([key]) =>
+          key.startsWith("getSavedPosts(")
+        );
+        for (const [key] of savedPostsQueries) {
+          try {
+            const argsMatch = key.match(/getSavedPosts\((.*)\)/);
+            if (argsMatch && argsMatch[1]) {
+              const args = JSON.parse(argsMatch[1]);
+              const patchResult = dispatch(
+                feedApi.util.updateQueryData(
+                  "getSavedPosts",
+                  args,
+                  (draft: any) => {
+                    const post = draft.posts?.find((p: any) => p.id === postId);
+                    if (post) {
+                      post.isLiked = !post.isLiked;
+                      post.likesCount += post.isLiked ? 1 : -1;
+                    }
+                  }
+                )
+              );
+              patchResults.push(patchResult);
+            }
+          } catch {
+            // Skip if parsing fails
           }
         }
 
@@ -464,6 +605,18 @@ export const feedApi = baseApi.injectEndpoints({
           }
         }
 
+        // Also update the single post cache (for single post page)
+        try {
+          const singlePostPatch = dispatch(
+            feedApi.util.updateQueryData("getPost", postId, (draft) => {
+              draft.commentsCount += 1;
+            })
+          );
+          feedPatches.push(singlePostPatch);
+        } catch {
+          // Single post query doesn't exist, skip
+        }
+
         try {
           const { data: newComment } = await queryFulfilled;
           // Replace optimistic comment with real one
@@ -585,6 +738,18 @@ export const feedApi = baseApi.injectEndpoints({
           }
         }
 
+        // Also update the single post cache (for single post page)
+        try {
+          const singlePostPatch = dispatch(
+            feedApi.util.updateQueryData("getPost", postId, (draft) => {
+              draft.isSaved = !draft.isSaved;
+            })
+          );
+          patchResults.push(singlePostPatch);
+        } catch {
+          // Single post query doesn't exist, skip
+        }
+
         try {
           await queryFulfilled;
         } catch {
@@ -596,13 +761,220 @@ export const feedApi = baseApi.injectEndpoints({
     // Report post
     reportPost: builder.mutation<
       { message: string },
-      { postId: number; reason: string }
+      { postId: number; reportingReason: string; pageID?: number }
     >({
-      query: ({ postId, reason }) => ({
+      query: ({ postId, reportingReason, pageID }) => ({
         url: `/v1/feed/posts/${postId}/report`,
         method: "POST",
-        body: { reason },
+        body: { reportingReason, pageID },
       }),
+    }),
+
+    // Withdraw report
+    withdrawReport: builder.mutation<
+      { message: string },
+      { postId: number; pageId?: number }
+    >({
+      query: ({ postId, pageId }) => ({
+        url: `/v1/feed/posts/${postId}/report`,
+        method: "DELETE",
+        params: pageId ? { page_id: pageId } : undefined,
+      }),
+    }),
+
+    // Repost a post
+    repostPost: builder.mutation<
+      Post,
+      {
+        postId: number;
+        caption?: string;
+        visibility?: "public" | "connections" | "private";
+        pageID?: number;
+      }
+    >({
+      query: ({ postId, caption, visibility, pageID }) => ({
+        url: `/v1/feed/posts/${postId}/repost`,
+        method: "POST",
+        body: { caption, visibility, pageID },
+      }),
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
+        // Optimistically increment repost count
+        const state = getState();
+        const patchResults: any[] = [];
+
+        const apiQueries = (state as any).api?.queries || {};
+        const cachedQueryArgs: Array<{
+          page: number;
+          limit: number;
+          feed_type: string;
+          pageId?: number | null;
+        }> = [];
+
+        for (const [key, value] of Object.entries(apiQueries)) {
+          if (key.startsWith("getFeed(") && (value as any)?.data) {
+            try {
+              const argsMatch = key.match(/getFeed\((.*)\)/);
+              if (argsMatch && argsMatch[1]) {
+                const args = JSON.parse(argsMatch[1]);
+                cachedQueryArgs.push(args);
+              }
+            } catch {
+              // Skip if parsing fails
+            }
+          }
+        }
+
+        if (cachedQueryArgs.length === 0) {
+          const feedTypes = [
+            "recommended",
+            "following",
+            "trending",
+            "recent",
+          ] as const;
+          for (const feed_type of feedTypes) {
+            cachedQueryArgs.push({
+              page: 1,
+              limit: 10,
+              feed_type,
+              pageId: null,
+            });
+          }
+        }
+
+        for (const args of cachedQueryArgs) {
+          try {
+            const patchResult = dispatch(
+              feedApi.util.updateQueryData("getFeed", args as any, (draft) => {
+                const post = draft.posts.find((p) => p.id === postId);
+                if (post) {
+                  post.repostsCount = (post.repostsCount || 0) + 1;
+                }
+              })
+            );
+            patchResults.push(patchResult);
+          } catch {
+            // Skip
+          }
+        }
+
+        try {
+          await queryFulfilled;
+          // Invalidate feed to show the new repost
+          dispatch(feedApi.util.invalidateTags(["Feed"]));
+        } catch {
+          patchResults.forEach((patch) => patch.undo());
+        }
+      },
+    }),
+
+    // Delete comment
+    deleteComment: builder.mutation<
+      { message: string },
+      { postId: number; commentId: number }
+    >({
+      query: ({ commentId }) => ({
+        url: `/v1/feed/comments/${commentId}`,
+        method: "DELETE",
+      }),
+      async onQueryStarted(
+        { postId, commentId },
+        { dispatch, queryFulfilled, getState }
+      ) {
+        // Optimistically remove comment
+        const patchResult = dispatch(
+          feedApi.util.updateQueryData(
+            "getPostComments",
+            { postId, page: 1, limit: 10 },
+            (draft) => {
+              const removeComment = (comments: Comment[]): boolean => {
+                for (let i = 0; i < comments.length; i++) {
+                  if (comments[i].id === commentId) {
+                    comments.splice(i, 1);
+                    draft.total -= 1;
+                    draft.totalAll -= 1;
+                    return true;
+                  }
+                  if (
+                    comments[i].replies &&
+                    removeComment(comments[i].replies)
+                  ) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+              removeComment(draft.comments);
+            }
+          )
+        );
+
+        // Also update comment count in feed
+        const state = getState();
+        const feedPatches: any[] = [];
+        const apiQueries = (state as any).api?.queries || {};
+
+        for (const [key, value] of Object.entries(apiQueries)) {
+          if (key.startsWith("getFeed(") && (value as any)?.data) {
+            try {
+              const argsMatch = key.match(/getFeed\((.*)\)/);
+              if (argsMatch && argsMatch[1]) {
+                const args = JSON.parse(argsMatch[1]);
+                const patch = dispatch(
+                  feedApi.util.updateQueryData(
+                    "getFeed",
+                    args as any,
+                    (draft) => {
+                      const post = draft.posts.find((p) => p.id === postId);
+                      if (post && post.commentsCount > 0) {
+                        post.commentsCount -= 1;
+                      }
+                    }
+                  )
+                );
+                feedPatches.push(patch);
+              }
+            } catch {
+              // Skip
+            }
+          }
+        }
+
+        // Also update the single post cache (for single post page)
+        try {
+          const singlePostPatch = dispatch(
+            feedApi.util.updateQueryData("getPost", postId, (draft) => {
+              if (draft.commentsCount > 0) {
+                draft.commentsCount -= 1;
+              }
+            })
+          );
+          feedPatches.push(singlePostPatch);
+        } catch {
+          // Single post query doesn't exist, skip
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+          feedPatches.forEach((p) => p.undo());
+        }
+      },
+      invalidatesTags: (result, error, { postId }) => [
+        { type: "Comments", id: postId },
+      ],
+    }),
+
+    // Get saved posts
+    getSavedPosts: builder.query<
+      FeedResponse & { posts: (Post & { savedAt: string })[] },
+      { page?: number; limit?: number; pageId?: number }
+    >({
+      query: ({ page = 1, limit = 20, pageId }) => ({
+        url: "/v1/feed/saved",
+        params: { page, limit, page_id: pageId },
+      }),
+      providesTags: ["SavedPosts"],
     }),
 
     // Like/Unlike comment with optimistic update
@@ -650,6 +1022,21 @@ export const feedApi = baseApi.injectEndpoints({
         }
       },
     }),
+
+    // Get trending topics/hashtags
+    getTrendingTopics: builder.query<
+      TrendingTopic[],
+      { days?: number; limit?: number } | void
+    >({
+      query: (params) => ({
+        url: "/v1/feed/trending/topics",
+        params: {
+          days: params?.days ?? 7,
+          limit: params?.limit ?? 10,
+        },
+      }),
+      providesTags: ["TrendingTopics"],
+    }),
   }),
   overrideExisting: true,
 });
@@ -668,5 +1055,10 @@ export const {
   useRemovePostAttachmentMutation,
   useSavePostMutation,
   useReportPostMutation,
+  useWithdrawReportMutation,
+  useRepostPostMutation,
+  useDeleteCommentMutation,
+  useGetSavedPostsQuery,
   useLikeCommentMutation,
+  useGetTrendingTopicsQuery,
 } = feedApi;
